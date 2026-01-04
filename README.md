@@ -42,6 +42,7 @@ Whether you're an AI engineer, consultant, freelancer, or influencer, Inbox Mana
 - **n8n Integration**: Seamlessly connects with n8n workflows for email sending and calendar management
 - **Hybrid Approach**: Combines the precision of custom Python code with the flexibility of low-code automation
 - **Workflow Automation**: Automates complex email-to-action pipelines without manual intervention
+- **NOTE**: In the code source make sure to change the webhook urls to your own n8n workflow's urls. The ones there only runs for my machine. You will find a lot of tutotials on Youtube on how to make your own n8n workflows and connect them with code via webhooks.
 
 ### User Interfaces
 - **Web Dashboard**: Streamlit-based frontend for email management and analytics
