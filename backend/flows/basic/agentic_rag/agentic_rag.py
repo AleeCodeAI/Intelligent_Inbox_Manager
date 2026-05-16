@@ -1,6 +1,7 @@
 import logging
 import asyncio
 from pathlib import Path
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from pydantic_ai import Agent, UsageLimits
@@ -12,7 +13,8 @@ from configs import AgenticRAGConfig
 from configs import MainSettings
 from prompts import AGENTIC_RAG_PROMPT
 from schemas import SearchAnswer
-from .tools import AgenticRagTools   
+from .tools import AgenticRagTools
+from .rag_observability import RagObservability
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -34,24 +36,28 @@ class AgenticRag(Logger):
     def __init__(self):
         self.configs = AgenticRAGConfig()
         self.main_settings = MainSettings()
+        self.model = self.main_settings.GPT_OSS_MODEL
         self.tools = AgenticRagTools(
             notes_dir=NOTES_DIR,
             grep_timeout_seconds=self.configs.GREP_TIMEOUT_SECONDS,
             read_max_lines=self.configs.READ_MAX_LINES,
-            log_callback=self.log,      # reuse the logger method
+            log_callback=self.log,
         )
+        self.observability = RagObservability()
         self.log("AgenticRAG initialized")
 
     def _build_agent(self) -> Agent:
         self.log("Building model and agent")
 
         model = OpenAIChatModel(
-            self.main_settings.GPT_OSS_MODEL,
+            self.model,
             provider=OpenAIProvider(
                 base_url=self.main_settings.OPENROUTER_URL,
                 api_key=self.main_settings.OPENROUTER_API_KEY,
             ),
         )
+
+        self.log(f"Model: {self.model} via OpenRouter")
 
         agent = Agent(
             model,
@@ -62,37 +68,73 @@ class AgenticRag(Logger):
             ],
             output_type=SearchAnswer,
             instructions=AGENTIC_RAG_PROMPT,
+            retries=self.main_settings.RAG_MAX_OUTPUT_RETRIES,
         )
 
         self.log("Agent built!")
         return agent
 
-    async def answer_question(self, query: str) -> SearchAnswer:
+    async def answer_question(self, query: str, session_id: str) -> SearchAnswer:
         self.log(f"Agent received query: {query}")
 
+        self.observability.start_trace(
+            session_id=session_id,
+            query=query,
+        )
+
         if not hasattr(self, "agent"):
-            self.log("loading agent")
+            self.log("Loading agent")
             self.agent = self._build_agent()
 
-        result = await self.agent.run(
-            query,
-            usage_limits=UsageLimits(request_limit=self.configs.AGENT_REQUEST_LIMIT),
-        )
+        try:
+            result = await self.agent.run(
+                query,
+                usage_limits=UsageLimits(request_limit=self.configs.AGENT_REQUEST_LIMIT),
+            )
 
-        usage = result.usage()
+            usage = result.usage
 
-        self.log(
-            f"Agent completed | requests={usage.requests} "
-            f"input_tokens={usage.input_tokens} output_tokens={usage.output_tokens}"
-        )
+            input_cost = (usage.input_tokens / 1_000_000) * self.main_settings.GPT_OSS_INPUT_PRICE
+            output_cost = (usage.output_tokens / 1_000_000) * self.main_settings.GPT_OSS_OUTPUT_PRICE
+            total_cost = round(input_cost + output_cost, 6)
 
-        return result.output
+            self.log(
+                f"Agent completed | model={self.model} "
+                f"requests={usage.requests} input_tokens={usage.input_tokens} "
+                f"output_tokens={usage.output_tokens} cost=${total_cost}"
+            )
+
+            output: SearchAnswer = result.output
+
+            self.observability.update_trace(
+            answer=output.answer,
+            citations=output.citations,
+            model=self.model,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            requests=usage.requests,
+            cost=total_cost,
+            )
+            self.observability.score_success()
+
+            return output
+
+        except Exception as e:
+            self.log(f"Agent failed: {e}")
+            self.observability.score_failure(reason=str(e))
+            raise
+
+        finally:
+            self.observability.flush()
 
 
 if __name__ == "__main__":
     assistant = AgenticRag()
     answer = asyncio.run(
-        assistant.answer_question("what are your specialities in LLMs?")
+        assistant.answer_question(
+            query="Hi there, I wanted to know the hourly rates for all your services and offers? regards, Alee",
+            session_id=str(uuid4())
+        )
     )
 
     print(answer.answer)
