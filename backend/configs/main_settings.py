@@ -22,6 +22,9 @@ class MainSettings(BaseSettings):
     GROQ_API_KEY: str
     GROQ_URL: str
 
+    # ------------------- n8n webhook URL ------------------ #
+    N8N_GET_EMAILS_WEBHOOK_URL:str
+
     # ------------------- Model Names ------------------ #
     GPT_NANO_MODEL: str = "openai/gpt-4.1-nano"
     GPT_OSS_MODEL: str = "openai/gpt-oss-120b"
