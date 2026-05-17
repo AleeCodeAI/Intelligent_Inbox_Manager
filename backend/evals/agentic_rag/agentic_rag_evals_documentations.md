@@ -1,7 +1,5 @@
 # Agentic RAG Evaluation Pipeline — Technical Documentation
 
----
-
 ## Table of Contents
 
 1. [Why This Evaluation Exists](#1-why-this-evaluation-exists)
@@ -54,22 +52,28 @@ The evaluation does not test individual tools (grep, list_files, read_file) in i
 ## 3. Architecture Overview
 
 ```
-evals/
-├── __init__.py
-├── run_eval.py          # EvalRunner — orchestrates the full pipeline
-├── judge.py             # Judge — LLM-as-judge using Groq
-├── metrics.py           # deterministic keyword coverage check
-├── schemas.py           # all Pydantic models
-├── reporter.py          # Reporter — JSONL writer and MD report generator
-└── data/
-    └── test_data.jsonl  # 50 curated ground truth examples
+backend/
+├── evals/
+│   ├── agentic_rag/
+│   │   ├── run_eval.py          # EvalRunner — orchestrates the full pipeline
+│   │   ├── judge.py             # Judge — LLM-as-judge using Groq
+│   │   ├── metrics.py           # deterministic keyword coverage check
+│   │   ├── reporter.py          # Reporter — JSONL writer and MD report generator
+│   │   └── agentic_rag_evals_documentations.md
+│   └── data/
+│       └── agentic_rag_test_data.jsonl  # 50 curated ground truth examples
+├── prompts/
+│   └── agentic_rag_eval_judge_prompt.py
+└── schemas/
+    ├── __init__.py
+    └── agentic_rag_evals_schemas.py
 ```
 
 ### Why This Module Structure
 
 Each module has a single responsibility:
 
-- `schemas.py` has no dependencies on other eval modules — it is the shared data contract
+- `schemas/agentic_rag_evals_schemas.py` has no dependencies on other eval modules — it is the shared data contract, and it is re-exported via `schemas/__init__.py` for convenient imports
 - `metrics.py` is pure logic — no I/O, no LLM calls, no side effects
 - `judge.py` encapsulates all LLM judge logic — the rest of the pipeline does not need to know how evaluation works
 - `reporter.py` encapsulates all I/O — file writing, path management, summary computation, report generation
@@ -90,9 +94,9 @@ This separation means the eval can run independently of OpenRouter costs and the
 
 ## 4. Module Breakdown
 
-### `schemas.py`
+### `schemas/agentic_rag_evals_schemas.py`
 
-The data contract for the entire pipeline. All modules import from here. No business logic lives here — only Pydantic models that define the shape of data at each stage.
+The data contract for the entire pipeline. All modules import from `schemas` via `schemas/__init__.py` which re-exports `agentic_rag_evals_schemas.py`. No business logic lives here — only Pydantic models that define the shape of data at each stage.
 
 ### `metrics.py`
 
@@ -102,7 +106,7 @@ Contains `compute_keyword_coverage(answer, keywords)`. This is a pure determinis
 
 Inherits from `Logger` for colored console output (CYAN). Initialized with Groq credentials and judge model from `MainSettings`. Exposes one public method: `evaluate(question, reference_answer, generated_answer, citations)` which returns a `JudgeOutput`.
 
-Internally it builds a structured user prompt combining question, reference answer, generated answer, and formatted citations, then sends it to the Groq LLM with `temperature=0.0` for deterministic output. The response is parsed from JSON into typed Pydantic objects. JSON fence stripping is applied before parsing to handle any markdown formatting the model might add.
+Internally it builds a structured user prompt from the root prompt file `prompts/agentic_rag_eval_judge_prompt.py`, combining question, reference answer, generated answer, and formatted citations, then sends it to the Groq LLM with `temperature=0.0` for deterministic output. The response is parsed from JSON into typed Pydantic objects. JSON fence stripping is applied before parsing to handle any markdown formatting the model might add.
 
 ### `reporter.py` — `Reporter` class
 
@@ -327,7 +331,7 @@ The judge runs at `temperature=0.0` for deterministic output. Evaluation consist
 
 ## 9. Schemas
 
-All data contracts are defined as Pydantic models in `schemas.py`.
+All data contracts are defined as Pydantic models in `schemas/agentic_rag_evals_schemas.py`, which is imported through `schemas/__init__.py` so modules can use `from schemas import ...`.
 
 ### `MetricLevel`
 ```python
@@ -573,10 +577,6 @@ The eval results provide strong confidence in the production pipeline for the fo
 
 **Improve completeness** through prompt engineering. The `AGENTIC_RAG_PROMPT` can be updated to explicitly instruct the agent to cover all aspects of a question rather than stopping at the first sufficient answer. This targets the 70% completeness score directly.
 
-**Add a completeness-focused retry** — if the agent returns an answer that scores MEDIUM on completeness, a second pass with explicit instruction to expand could be triggered automatically.
-
-**Delta reporting** — once a second eval run exists, the report generator can be extended to compare against the baseline and show per-metric delta (e.g. completeness +8%). This makes improvement visible and measurable.
-
 **Expand test data** — 50 examples covers the current note content well. As notes grow, the test set should grow proportionally to maintain coverage. Aim for at least 10 examples per category.
 
 **Threshold calibration** — at 80% the system correctly flags completeness as a failure. After completeness is improved, consider raising the threshold to 85% to continue driving quality improvements.
@@ -586,3 +586,5 @@ The eval results provide strong confidence in the production pipeline for the fo
 *Documentation generated for inbox-manager-production backend — AgenticRAG evaluation pipeline v1.0*
 *Baseline eval session: `66c0a371-63f3-46f5-b702-d40d014a6fa0`*
 *Date: 2026-05-16*
+
+---
