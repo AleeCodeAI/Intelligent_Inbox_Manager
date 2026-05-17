@@ -34,7 +34,7 @@ class EmailReceiver(Logger):
         self.log("Fetching new emails from n8n...")
 
         try:
-            response = requests.get(self.url, timeout=30)
+            response = requests.get(self.url, timeout=200)
             response.raise_for_status()
         except requests.Timeout:
             self.log("Request to n8n timed out")
