@@ -24,6 +24,7 @@ class MainSettings(BaseSettings):
 
     # ------------------- n8n webhook URL ------------------ #
     N8N_GET_EMAILS_WEBHOOK_URL:str
+    SEND_EXAMPLE_EMAILS_N8N_URL: str
 
     # ------------------- Model Names ------------------ #
     GPT_NANO_MODEL: str = "openai/gpt-4.1-nano"
