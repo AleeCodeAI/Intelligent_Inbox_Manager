@@ -17,5 +17,4 @@ class InboundEmailBatch(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     total: int = Field(description="Total number of new emails returned")
-    last_email_id: str = Field(alias="lastEmailId", description="ID of the most recent email, used for tracking")
     emails: list[InboundEmail] = Field(description="List of new unread emails")
