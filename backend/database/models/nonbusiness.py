@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey
+from sqlalchemy import Column, String, Text, ForeignKey, Boolean
 from database.base import Base
 
 class NonBusinessEmailData(Base):
@@ -8,3 +8,5 @@ class NonBusinessEmailData(Base):
 
     reason = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
+
+    reviewed = Column(Boolean, default=False) # reviewed here means human answered this email and confirmed the priority

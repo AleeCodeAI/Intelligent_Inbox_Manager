@@ -19,3 +19,9 @@ def insert_basic(email_id: str, rag_query: str, rag_response: str):
 
     finally:
         db.close()
+
+def mark_basic_reviewed(db, email_db_id: str):
+    db.query(BasicEmailData)\
+      .filter(BasicEmailData.email_id == email_db_id)\
+      .update({"reviewed": True})
+    db.commit()

@@ -19,3 +19,10 @@ def insert_priority(email_id: str, priority_type: str, client_tier: str):
 
     finally:
         db.close()
+
+def mark_priority_reviewed(db, email_db_id: str):
+    db.query(PriorityEmailData)\
+      .filter(PriorityEmailData.email_id == email_db_id)\
+      .update({"reviewed": True})
+    db.commit()
+

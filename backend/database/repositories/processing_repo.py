@@ -12,6 +12,8 @@ def insert_processing(email_id: str, data: EmailProcessed):
             classification=data.classification,
             confidence=data.confidence,
             reasoning=data.reasoning,
+            success=data.success,
+            processed_date=data.processed_date
         )
 
         db.add(record)

@@ -23,3 +23,10 @@ def insert_email(data: InboundEmail):
 
     finally:
         db.close()
+
+def get_email(db, email_id: str):
+    return (
+        db.query(Email)
+        .filter(Email.email_id == email_id)
+        .first()
+    )

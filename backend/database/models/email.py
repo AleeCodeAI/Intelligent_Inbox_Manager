@@ -5,6 +5,7 @@ class Email(Base):
     __tablename__ = "emails"
 
     id = Column(String, primary_key=True, index=True)
+    email_id = Column(String, nullable=False, index=True)
     thread_id = Column(String, nullable=True)
     sender_name = Column(String, nullable=True)
     sender_email = Column(String, nullable=False, index=True)
