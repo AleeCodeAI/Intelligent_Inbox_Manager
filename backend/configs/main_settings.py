@@ -26,6 +26,9 @@ class MainSettings(BaseSettings):
     N8N_GET_EMAILS_WEBHOOK_URL:str
     SEND_EXAMPLE_EMAILS_N8N_URL: str
 
+    # ------------------- Postgressl credentials ------------------ #
+    POSTGRESQL_URL: str
+
     # ------------------- Model Names ------------------ #
     GPT_NANO_MODEL: str = "openai/gpt-4.1-nano"
     GPT_OSS_MODEL: str = "openai/gpt-oss-120b"
