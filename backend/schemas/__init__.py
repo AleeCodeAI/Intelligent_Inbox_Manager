@@ -10,3 +10,4 @@ from .agentic_rag_evals_schemas import (
     MetricStats,
 )
 from .receive_email_schemas import InboundEmail, InboundEmailBatch
+from .executor import EmailProcessed
