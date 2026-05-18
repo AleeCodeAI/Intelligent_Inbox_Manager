@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
-
 class InboundEmail(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -11,7 +10,6 @@ class InboundEmail(BaseModel):
     subject: str = Field(description="Email subject line")
     date: Optional[str] = Field(default=None, description="Email received date")
     body: Optional[str] = Field(default=None, description="Full email body, None if no content could be extracted")
-
 
 class InboundEmailBatch(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
