@@ -62,6 +62,24 @@ if __name__ == "__main__":
     receiver = EmailReceiver()
     try:
         emails = receiver.get_emails()
-        print(emails)
+
+        print("\n" + "="*60)
+        print(f"TOTAL EMAILS: {emails.total}")
+        print("="*60)
+
+        for i, email in enumerate(emails.emails, 1):
+            print(f"\n📧 EMAIL #{i}")
+            print("-"*60)
+            print(f"ID           : {email.id}")
+            print(f"Thread ID    : {email.thread_id}")
+            print(f"Sender       : {email.sender_name} <{email.sender_email}>")
+            print(f"Subject      : {email.subject}")
+            print(f"Date         : {email.date}")
+            print("\nBODY:")
+            print(email.body)
+            print("-"*60)
+
+        print("\n" + "="*60)
+
     except Exception as e:
         print(f"Error fetching emails: {e}")
