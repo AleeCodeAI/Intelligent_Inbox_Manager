@@ -2,13 +2,13 @@ from database.session import SessionLocal
 from database.models.priority import PriorityEmailData
 
 
-def insert_priority(email_id: str, priority_type: str, client_tier: str):
+def insert_priority(email_id: str, priority_type: str, reviewed: bool):
     db = SessionLocal()
     try:
         record = PriorityEmailData(
             email_id=email_id,
             priority_type=priority_type,
-            client_tier=client_tier,
+            reviewed=reviewed
         )
 
         db.add(record)

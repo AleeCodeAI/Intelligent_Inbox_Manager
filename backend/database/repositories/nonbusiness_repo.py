@@ -2,13 +2,14 @@ from database.session import SessionLocal
 from database.models.nonbusiness import NonBusinessEmailData
 
 
-def insert_nonbusiness(email_id: str, reason: str, notes: str = None):
+def insert_nonbusiness(email_id: str, reason: str, notes: str = None, reviewed: bool = False):
     db = SessionLocal()
     try:
         record = NonBusinessEmailData(
             email_id=email_id,
             reason=reason,
             notes=notes,
+            reviewed=reviewed
         )
 
         db.add(record)
