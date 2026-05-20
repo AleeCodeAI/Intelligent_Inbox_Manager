@@ -5,8 +5,8 @@ from database.base import Base
 class EmailProcessing(Base):
     __tablename__ = "email_processing"
 
-    id = Column(String, primary_key=True)
-    email_id = Column(String, ForeignKey("emails.id"), nullable=False)
+    email_processing_id = Column(String, primary_key=True)
+    gmail_id = Column(String, ForeignKey("emails.email_db_id"), nullable=False)
 
     classification = Column(String, nullable=True)
     confidence = Column(Float, nullable=True)

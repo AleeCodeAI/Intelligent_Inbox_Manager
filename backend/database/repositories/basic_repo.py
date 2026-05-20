@@ -3,9 +3,10 @@ from database.models.basic import BasicEmailData
 
 
 def insert_basic(
-        email_id: str, 
-        rag_response: str = None, 
+        email_db_id: str, 
+        rag_answer: str = None, 
         rag_status: str = "failed", 
+        citations: list[dict] = None,
         failure_reason: str = None,
         needs_manual_reply: bool = False,
         reviewed: bool = False):
@@ -13,8 +14,9 @@ def insert_basic(
     db = SessionLocal()
     try:
         record = BasicEmailData(
-            email_id=email_id,
-            rag_response=rag_response,
+            email_db_id=email_db_id,
+            rag_answer=rag_answer,
+            citations=citations,
             rag_status=rag_status,
             failure_reason=failure_reason,
             needs_manual_reply=needs_manual_reply,
@@ -30,8 +32,9 @@ def insert_basic(
     finally:
         db.close()
 
-def mark_basic_reviewed(db, email_db_id: str):
+def mark_basic_reviewed(email_db_id: str):
+    db = SessionLocal()
     db.query(BasicEmailData)\
-      .filter(BasicEmailData.email_id == email_db_id)\
+      .filter(BasicEmailData.email_db_id == email_db_id)\
       .update({"reviewed": True})
     db.commit()
