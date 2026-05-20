@@ -9,5 +9,5 @@ class AgentInput(BaseModel):
     rag_reply: str
 
 
-class EmailResponse(BaseModel):
+class BasicEmailResponse(BaseModel):
     body: str  # plain text — template.py wraps this in HTML
