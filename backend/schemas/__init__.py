@@ -11,4 +11,4 @@ from .agentic_rag_evals_schemas import (
 )
 from .receive_email_schemas import InboundEmail, InboundEmailBatch
 from .executor import EmailProcessed
-from .basic_flow_schemas import AgentInput, EmailResponse
+from .basic_flow_schemas import AgentInput, BasicEmailResponse
