@@ -20,7 +20,7 @@ class RagObservability:
             "Content-Type": "application/json",
         }
 
-    def start_trace(self, session_id: str, query: str):
+    def start_trace(self, session_id: str, query: str, system_prompt: str = ""):
         self._trace_id = str(uuid4())
         self._generation_id = str(uuid4())
         self._start_time = datetime.now(timezone.utc)
@@ -37,6 +37,7 @@ class RagObservability:
                         "sessionId": session_id,
                         "input": query,
                         "tags": ["rag", "answer"],
+                        "metadata": {"system_prompt": system_prompt},  
                     },
                 },
                 {
@@ -48,7 +49,10 @@ class RagObservability:
                         "traceId": self._trace_id,
                         "name": "rag-agent-run",
                         "startTime": self._start_time.isoformat(),
-                        "input": query,
+                        "input": {                                      
+                            "system": system_prompt,
+                            "user": query,
+                        },
                     },
                 },
             ]
