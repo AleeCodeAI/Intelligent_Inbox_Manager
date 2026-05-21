@@ -13,6 +13,7 @@ from utils.color import Logger
 from schemas import BasicLLMInput, BasicEmailResponse
 from prompts import BASIC_SYSTEM_PROMPT
 from .template import render_email
+from .basic_observability import BasicFlowObservability  
 
 from configs import MainSettings
 
@@ -45,7 +46,7 @@ class BasicFlow(Logger):
 
     def _build_llm_input(self, email: InboundEmail) -> BasicLLMInput:
         rag_reply = asyncio.run(
-            self.rag.answer_question(query=email.body, session_id="basic_flow_test_session")
+            self.rag.answer_question(query=email.body, session_id=email.thread_id)
         )
         return BasicLLMInput(
             sender_name=email.sender_name,
@@ -67,29 +68,40 @@ class BasicFlow(Logger):
             {"role": "user", "content": user_content},
         ]
 
-    def _call_llm(self, llm_input: BasicLLMInput) -> BasicEmailResponse:
+    def _call_llm(self, llm_input: BasicLLMInput, obs: BasicFlowObservability, ) -> BasicEmailResponse:
+
         providers = [
             ("Groq", self.groq, self.gpt_oss_model),
             ("OpenRouter", self.openrouter, self.gpt_oss_model),
         ]
 
-        last_error = None
+        messages = self._make_messages(llm_input)
+        system_prompt = messages[0]["content"]
+        user_content = messages[1]["content"]
 
+        obs.start_generation(system_prompt=system_prompt, user_content=user_content)  
+
+        last_error = None
         for provider_name, client, model in providers:
             try:
                 self.log(f"Trying LLM provider: {provider_name}")
 
-                raw = client.chat.completions.create(
-                    model=model,
-                    messages=self._make_messages(llm_input),
-                )
-
+                raw = client.chat.completions.create(model=model, messages=messages)
                 body = raw.choices[0].message.content
 
                 if not body or not body.strip():
                     raise ValueError(f"Empty response from {provider_name}")
 
                 body = body.strip()
+                usage = raw.usage  
+
+                obs.end_generation(
+                    output=body,
+                    model=model,
+                    provider=provider_name,
+                    input_tokens=usage.prompt_tokens if usage else 0,
+                    output_tokens=usage.completion_tokens if usage else 0,
+                )
 
                 self.log(f"{provider_name} response generated successfully")
                 return BasicEmailResponse(body=body)
@@ -101,18 +113,26 @@ class BasicFlow(Logger):
         self.log("All LLM providers failed")
         raise last_error
 
-    def _send(self, email_id: str, html_body: str):
+    def _send(self, email_id: str, html_body: str, obs: BasicFlowObservability):  
+
+        obs.start_send_span()
         for attempt in range(1, self.settings.N8N_MAX_RETRIES + 1):
             try:
                 self.log(f"Attempt {attempt} to send email via n8n for email ID: {email_id}")
                 result = send_to_n8n({"id": email_id, "body": html_body})
                 self.log(f"Send status: {result['status']}  id: {result['emailId']}")
+                obs.end_send_span(
+                    status=result["status"],
+                    attempts=attempt,
+                    email_id=result["emailId"],
+                )
                 return result
             except Exception as e:
                 self.log(f"Attempt {attempt} failed to send email ID: {email_id} with error: {e}")
                 if attempt == self.settings.N8N_MAX_RETRIES:
+                    obs.end_send_span(status="failed", attempts=attempt, email_id=email_id)  
                     self.log(f"All attempts failed to send email ID: {email_id}")
-                    raise 
+                    raise
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -121,9 +141,17 @@ class BasicFlow(Logger):
     def run(self, email: InboundEmail) -> BasicEmailResponse:
         self.log(f"Processing {email.gmail_id} from {email.sender_email}")
 
-        # Always persist the raw inbound email first
-        self.log(f"Inserting email {email.gmail_id} into database for emails table")
+        obs = BasicFlowObservability()
+        obs.start_trace(
+            session_id=email.thread_id,
+            gmail_id=email.gmail_id,
+            sender_email=email.sender_email,
+            sender_name=email.sender_name,
+            subject=email.subject,
+            body=email.body,
+        )
 
+        self.log(f"Inserting email {email.gmail_id} into database for emails table")
         uuid_id = str(uuid.uuid4())
 
         insert_email(
@@ -140,23 +168,21 @@ class BasicFlow(Logger):
 
         try:
             self.log(f"Step 1: Building LLM input for email {email.gmail_id}")
-
+            obs.start_rag_span()
             llm_input = self._build_llm_input(email)
+            obs.end_rag_span()
 
             self.log(f"Step 2: Calling LLM for email {email.gmail_id}")
-
-            response = self._call_llm(llm_input)
+            response = self._call_llm(llm_input, obs)
 
             self.log(
                 f"Step 3: Rendering in HTML the LLM response: "
                 f"{response.body[:60]}..."
             )
-
             html = render_email(email.sender_name, response.body)
 
             self.log(f"Step 4: Sending email {email.gmail_id} via n8n")
-
-            result = self._send(email.gmail_id, html)
+            result = self._send(email.gmail_id, html, obs)
 
             self.log(
                 f"Email reply sent successfully for email: "
@@ -167,7 +193,6 @@ class BasicFlow(Logger):
                 f"Step 5: Inserting email {email.gmail_id} "
                 f"into database for basic_flow table"
             )
-
             insert_basic(
                 email_db_id=uuid_id,
                 rag_answer=llm_input.rag_answer,
@@ -175,29 +200,30 @@ class BasicFlow(Logger):
                 citations=[c.model_dump() for c in llm_input.citations],
                 needs_manual_reply=False,
             )
-
             basic_inserted = True
 
             self.log(
-                f"Step 6: Marking email {email.gmail_id} "
-                f"as reviewed in database"
+                f"Step 6: Marking email {email.gmail_id} as reviewed in database"
             )
-
             try:
                 mark_basic_reviewed(email_db_id=uuid_id)
-
             except Exception as review_error:
                 self.log(
                     f"Failed to mark email {email.gmail_id} "
                     f"as reviewed: {review_error}"
                 )
 
-            self.log(f"Done for : {email.gmail_id}")
+            obs.finish_trace(output=response.body)
+            obs.score_success()
 
+            self.log(f"Done for : {email.gmail_id}")
             return response
 
         except Exception as exc:
             self.log(f"Failed: {email.gmail_id} — {exc}")
+
+            obs.finish_trace(output="")
+            obs.score_failure(reason=str(exc))
 
             if not basic_inserted:
                 try:
@@ -207,7 +233,6 @@ class BasicFlow(Logger):
                         failure_reason=str(exc),
                         needs_manual_reply=True,
                     )
-
                 except Exception as db_error:
                     self.log(
                         f"Failed to insert failure state for "
@@ -221,9 +246,10 @@ class BasicFlow(Logger):
                 )
             )
 
+
 if __name__ == "__main__":
     flow = BasicFlow()
-    
+
     email = InboundEmail(
         gmail_id="19e364c2373f3087",
         thread_id="19e364c2373f3087",
