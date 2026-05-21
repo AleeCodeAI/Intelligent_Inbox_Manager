@@ -70,7 +70,7 @@ if __name__ == "__main__":
         for i, email in enumerate(emails.emails, 1):
             print(f"\n📧 EMAIL #{i}")
             print("-"*60)
-            print(f"ID           : {email.id}")
+            print(f"ID           : {email.gmail_id}")
             print(f"Thread ID    : {email.thread_id}")
             print(f"Sender       : {email.sender_name} <{email.sender_email}>")
             print(f"Subject      : {email.subject}")
