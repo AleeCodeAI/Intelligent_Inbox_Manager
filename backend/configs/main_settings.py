@@ -39,6 +39,9 @@ class MainSettings(BaseSettings):
     # ------------------- LLM Limits ------------------ #
     RAG_MAX_OUTPUT_RETRIES: int = 3
 
+    # -------------------- SEND TO N8N SETTINGS ------------------ #
+    N8N_MAX_RETRIES: int = 3
+
     # ------------------- Model Openrouter Pricing ------------------ #
     GPT_OSS_INPUT_PRICE: float = 0.039
     GPT_OSS_OUTPUT_PRICE: float = 0.18
