@@ -78,8 +78,9 @@ class AgenticRag(Logger):
         self.log(f"Agent received query: {query}")
 
         self.observability.start_trace(
-            session_id=session_id,
-            query=query,
+        session_id=session_id,
+        query=query,
+        system_prompt=AGENTIC_RAG_PROMPT,
         )
 
         if not hasattr(self, "agent"):
