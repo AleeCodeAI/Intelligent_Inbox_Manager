@@ -34,7 +34,12 @@ def insert_basic(
 
 def mark_basic_reviewed(email_db_id: str):
     db = SessionLocal()
-    db.query(BasicEmailData)\
-      .filter(BasicEmailData.email_db_id == email_db_id)\
-      .update({"reviewed": True})
-    db.commit()
+    try:
+        db.query(BasicEmailData)\
+          .filter(BasicEmailData.email_db_id == email_db_id)\
+          .update({"reviewed": True})
+
+        db.commit()
+
+    finally:
+        db.close()
