@@ -56,9 +56,9 @@ class BasicFlow(Logger):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _build_llm_input(self, email: InboundEmail) -> BasicLLMInput:
+    def _build_llm_input(self, email: InboundEmail, session_id: str) -> BasicLLMInput:
         rag_reply = asyncio.run(
-            self.rag.answer_question(query=email.body, session_id=email.thread_id)
+            self.rag.answer_question(query=email.body, session_id=session_id)
         )
         return BasicLLMInput(
             sender_name=email.sender_name,
@@ -89,7 +89,10 @@ class BasicFlow(Logger):
         system_prompt = messages[0]["content"]
         user_content = messages[1]["content"]
 
-        obs.start_generation(system_prompt=system_prompt, user_content=user_content)  
+        obs.start_generation(
+            system_prompt=system_prompt, 
+            user_content=user_content
+            )  
 
         last_error = None
         for provider_name, client, model in providers:
@@ -152,17 +155,18 @@ class BasicFlow(Logger):
     def run(self, email: InboundEmail) -> BasicEmailResponse:
         self.log(f"Processing {email.gmail_id} from {email.sender_email}")
 
+        uuid_id = str(uuid.uuid4())
+        session_id = email.thread_id
+
         obs = BasicFlowObservability()
         obs.start_trace(
-            session_id=email.thread_id,
+            session_id=session_id,
             gmail_id=email.gmail_id,
             sender_email=email.sender_email,
             sender_name=email.sender_name,
             subject=email.subject,
             body=email.body,
         )
-
-        uuid_id = str(uuid.uuid4())
         
         try:
             self.log(f"Inserting email {email.gmail_id} into database for emails table")
@@ -185,7 +189,7 @@ class BasicFlow(Logger):
         try:
             self.log(f"Step 1: Building LLM input for email {email.gmail_id}")
             obs.start_rag_span()
-            llm_input = self._build_llm_input(email)
+            llm_input = self._build_llm_input(email, session_id=session_id)
             obs.end_rag_span()
 
             self.log(f"Step 2: Calling LLM for email {email.gmail_id}")
