@@ -111,6 +111,7 @@ class BasicFlow(Logger):
                     provider=provider_name,
                     input_tokens=usage.prompt_tokens if usage else 0,
                     output_tokens=usage.completion_tokens if usage else 0,
+                    cost=getattr(usage, 'cost', 0) or 0,
                 )
 
                 self.log(f"{provider_name} response generated successfully")

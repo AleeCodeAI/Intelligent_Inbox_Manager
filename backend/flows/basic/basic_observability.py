@@ -153,6 +153,7 @@ class BasicFlowObservability:
         provider: str,
         input_tokens: int,
         output_tokens: int,
+        cost: float = 0.0,  # default 0 for Groq
     ) -> None:
         if not self._generation_id:
             return
@@ -174,6 +175,7 @@ class BasicFlowObservability:
                         "output": output_tokens,
                         "total": input_tokens + output_tokens,
                         "unit": "TOKENS",
+                        "totalCost": cost,  
                     },
                     "metadata": {
                         "provider": provider,
