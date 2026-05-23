@@ -26,7 +26,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 basic_emails.append(json.loads(line))
 
-        return basic_emails[:10]
+        return basic_emails[10:20]
     
     def load_priority_emails(self):
         priority_emails = []
@@ -55,9 +55,10 @@ class SendExampleEmails(Logger):
 
         return all_emails
 
-    def send_email(self, email: str):
+    def send_email(self, email: InboundEmail):
+        # model_dump(mode="json") serializes everything, including datetimes, into JSON-compatible primitives
+        payload = {"email": email.model_dump(mode="json")}
         
-        payload = {"email": email.dict()}
         try:
             response = requests.post(self.url, json=payload)
             if response.status_code == 200:
