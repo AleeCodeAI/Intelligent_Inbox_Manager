@@ -21,6 +21,18 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 class BasicFlow(Logger):
+    """
+    BasicFlow
+    ---------
+    End-to-end pipeline for handling inbound emails.
+
+    Receives a parsed inbound email, runs it through the agentic RAG pipeline
+    to generate a context-aware answer, composes a reply via LLM, renders it
+    into an HTML email, and delivers it via n8n.
+
+    All steps are persisted to the database and traced in Langfuse under the
+    same session as the RAG pipeline using the email's thread ID.
+    """
     name = "BasicFlow"
     color = Logger.TURQUOISE
 
@@ -58,8 +70,6 @@ class BasicFlow(Logger):
 
     def _make_messages(self, llm_input: BasicLLMInput) -> list[dict]:
         user_content = (
-            f"Sender name: {llm_input.sender_name}\n"
-            f"Sender email: {llm_input.sender_email}\n\n"
             f"Their email:\n{llm_input.message}\n\n"
             f"RAG reply:\n{llm_input.rag_answer}"
         )
@@ -151,18 +161,23 @@ class BasicFlow(Logger):
             body=email.body,
         )
 
-        self.log(f"Inserting email {email.gmail_id} into database for emails table")
         uuid_id = str(uuid.uuid4())
-
-        insert_email(
-            email_db_id=uuid_id,
-            gmail_id=email.gmail_id,
-            thread_id=email.thread_id,
-            sender_name=email.sender_name,
-            sender_email=email.sender_email,
-            subject=email.subject,
-            body=email.body,
-        )
+        
+        try:
+            self.log(f"Inserting email {email.gmail_id} into database for emails table")
+            
+            insert_email(
+                email_db_id=uuid_id,
+                gmail_id=email.gmail_id,
+                thread_id=email.thread_id,
+                sender_name=email.sender_name,
+                sender_email=email.sender_email,
+                subject=email.subject,
+                body=email.body,
+            )
+        except Exception as db_error:
+            self.log(f"Failed to insert email {email.gmail_id} into database: {db_error}")
+            raise
 
         basic_inserted = False
 
@@ -251,14 +266,14 @@ if __name__ == "__main__":
     flow = BasicFlow()
 
     email = InboundEmail(
-        gmail_id="19e364c2373f3087",
-        thread_id="19e364c2373f3087",
-        sender_name="Amanda Seyfried",
+        gmail_id="19e4f232f06674f4",
+        thread_id="19e4f232f06674f4",
+        sender_name="Alpha Ventures",
         sender_email="testemail00@gmail.com",
-        subject="Prompt engineering rate inquiry",
-        date="2026-05-17 14:16:59+00:00",
+        subject="Consulting for early-stage AI product",
+        date="2026-05-22 10:02:46+00:00",
         body="""
-Hello, I need some assistance with prompt design, evaluation, and LLM integration to ensure consistent behavior in our app. What is your specific hourly rate for Large Language Models (LLMs) work?
+Hello, we have an early-stage product using AI and need someone to review our system architecture and identify failure points. What does your consulting typically involve?
 """
     )
 

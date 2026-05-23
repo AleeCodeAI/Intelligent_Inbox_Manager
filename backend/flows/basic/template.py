@@ -40,6 +40,11 @@ HTML_TEMPLATE = """\
 
               {body_paragraphs}
 
+              <!-- Closing line -->
+              <p style="margin:0 0 22px 0;font-family:'DM Sans',Arial,sans-serif;font-size:15px;line-height:1.75;color:#2c3e50;">
+                Thank you for reaching out — looking forward to connecting.
+              </p>
+
               <!-- Divider -->
               <table role="presentation" style="width:100%;border-collapse:collapse;margin:28px 0;">
                 <tr><td style="border-top:1px solid #e4eaf0;font-size:0;">&nbsp;</td></tr>
