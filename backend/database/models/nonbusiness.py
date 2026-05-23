@@ -6,7 +6,7 @@ class NonBusinessEmailData(Base):
 
     email_db_id = Column(String, ForeignKey("emails.email_db_id"), primary_key=True)
 
-    reason = Column(String, nullable=True)
+    reason = Column(String, nullable=False)
     notes = Column(Text, nullable=True)
 
     reviewed = Column(Boolean, default=False) # reviewed here means human answered this email and confirmed the priority

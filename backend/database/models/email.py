@@ -6,8 +6,8 @@ class Email(Base):
 
     email_db_id = Column(String, primary_key=True, index=True)
     gmail_id = Column(String, nullable=False, index=True)
-    thread_id = Column(String, nullable=True)
-    sender_name = Column(String, nullable=True)
+    thread_id = Column(String, nullable=False)
+    sender_name = Column(String, nullable=False)
     sender_email = Column(String, nullable=False, index=True)
     subject = Column(String, nullable=False)
-    body = Column(Text, nullable=True)
+    body = Column(Text, nullable=False)
