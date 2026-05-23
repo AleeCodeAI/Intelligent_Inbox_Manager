@@ -97,14 +97,14 @@ class BasicFlow(Logger):
                 self.log(f"Trying LLM provider: {provider_name}")
 
                 raw = client.chat.completions.create(model=model, messages=messages)
+                usage = raw.usage 
                 body = raw.choices[0].message.content
 
                 if not body or not body.strip():
                     raise ValueError(f"Empty response from {provider_name}")
 
                 body = body.strip()
-                usage = raw.usage  
-
+                 
                 obs.end_generation(
                     output=body,
                     model=model,
