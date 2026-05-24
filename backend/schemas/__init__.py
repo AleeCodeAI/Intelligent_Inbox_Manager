@@ -13,3 +13,4 @@ from .receive_email_schemas import InboundEmail, InboundEmailBatch
 from .executor import EmailProcessed
 from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse
 from .priority_flow_schemas import PriorityResult
+from .nonbusiness_flow_schemas import NonBusinessResult
