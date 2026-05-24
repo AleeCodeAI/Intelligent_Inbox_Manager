@@ -7,7 +7,7 @@ from schemas import InboundEmail
 from database import insert_email
 from database import insert_basic, mark_basic_reviewed
 from flows.basic.agentic_rag.agentic_rag import AgenticRag
-from .send_email import send_to_n8n
+from utils.send_email import send_to_n8n
 from utils.color import Logger
 
 from schemas import BasicLLMInput, BasicEmailResponse
@@ -133,7 +133,13 @@ class BasicFlow(Logger):
         for attempt in range(1, self.settings.N8N_MAX_RETRIES + 1):
             try:
                 self.log(f"Attempt {attempt} to send email via n8n for email ID: {email_id}")
-                result = send_to_n8n({"id": email_id, "body": html_body})
+                result = send_to_n8n(
+                    {
+                        "id": email_id, 
+                        "body": html_body, 
+                        "email_type": "BASIC"
+                        }
+                    )
                 self.log(f"Send status: {result['status']}  id: {result['emailId']}")
                 obs.end_send_span(
                     status=result["status"],
