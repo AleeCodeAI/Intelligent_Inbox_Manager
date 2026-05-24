@@ -2,6 +2,7 @@ import requests
 from schemas import InboundEmailBatch
 from configs import MainSettings
 from utils.color import Logger
+from core.email_preprocessor import EmailPreprocessor
 import logging
 
 
@@ -14,6 +15,7 @@ class EmailReceiver(Logger):
     def __init__(self):
         settings = MainSettings()
         self.url = settings.N8N_GET_EMAILS_WEBHOOK_URL
+        self.preprocessor = EmailPreprocessor()
         self.log("Initialized EmailReceiver with n8n webhook URL")
 
     def get_emails(self) -> InboundEmailBatch:
@@ -29,7 +31,6 @@ class EmailReceiver(Logger):
             requests.Timeout: If the request exceeds timeout.
             ValueError: If response cannot be parsed into expected schema.
         """
-        
 
         self.log("Fetching new emails from n8n...")
 
@@ -55,9 +56,14 @@ class EmailReceiver(Logger):
             self.log(f"Failed to parse n8n response: {e}")
             raise ValueError(f"Unexpected response shape from n8n: {e}") from e
 
+        self.log("Preprocessing email bodies...")
+        for email in result.emails:
+            email.body = self.preprocessor.clean(email.body)
+
         self.log(f"Fetched {result.total} new emails")
         return result
-    
+
+
 if __name__ == "__main__":
     receiver = EmailReceiver()
     try:
