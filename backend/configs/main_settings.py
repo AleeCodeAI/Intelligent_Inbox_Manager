@@ -25,7 +25,7 @@ class MainSettings(BaseSettings):
     # ------------------- n8n webhook URL ------------------ #
     N8N_GET_EMAILS_WEBHOOK_URL:str
     SEND_EXAMPLE_EMAILS_N8N_URL: str
-    SEND_BASIC_EMAILS: str
+    SEND_EMAILS: str
 
     # ------------------- Postgressl credentials ------------------ #
     POSTGRESQL_URL: str
