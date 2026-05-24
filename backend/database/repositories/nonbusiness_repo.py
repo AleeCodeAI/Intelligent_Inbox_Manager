@@ -1,18 +1,20 @@
 from database.session import SessionLocal
 from database.models.nonbusiness import NonBusinessEmailData
+from schemas import NonBusinessResult
 
-
-def insert_nonbusiness(email_db_id: str, 
-                       reason: str, 
-                       notes: str = None, 
-                       reviewed: bool = False):
-    
+def insert_nonbusiness(
+    email_db_id: str,
+    data: NonBusinessResult,
+    reviewed: bool = False
+):
     db = SessionLocal()
+
     try:
         record = NonBusinessEmailData(
             email_db_id=email_db_id,
-            reason=reason,
-            notes=notes,
+            nonbusiness_type=data.nonbusiness_type,
+            confidence=data.confidence,
+            reasoning=data.reasoning,
             reviewed=reviewed
         )
 
