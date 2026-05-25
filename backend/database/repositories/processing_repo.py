@@ -9,11 +9,11 @@ def insert_processing(gmail_id: str, data: EmailProcessed):
         record = EmailProcessing(
             email_processing_id=f"proc_{gmail_id}",
             gmail_id=gmail_id,
-            classification=data.classification,
-            confidence=data.confidence,
-            reasoning=data.reasoning,
+            classification=data.result.classification,
+            confidence=data.result.confidence,
+            reasoning=data.result.reasoning,
             success=data.success,
-            processed_date=data.processed_date
+            processed_date=data.processed_date,
         )
 
         db.add(record)
