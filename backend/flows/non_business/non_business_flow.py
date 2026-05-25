@@ -1,9 +1,7 @@
-import uuid
 import logging
 from openai import OpenAI
 
 from schemas import InboundEmail
-from database import insert_email
 from database import insert_nonbusiness
 from .nonbusiness_observability import NonBusinessFlowObservability
 from utils.color import Logger
@@ -128,13 +126,12 @@ class NonBusinessFlow(Logger):
     # Main Flow Method
     # ------------------------------------------------------------------
 
-    def run(self, email: InboundEmail) -> NonBusinessResult:
+    def run(self, email: InboundEmail, email_db_id: str) -> NonBusinessResult:
         """Classify email as non-business and return results."""
         self.log(f"Running NonBusinessFlow for email: {email.subject}")
 
-        uuid_id = str(uuid.uuid4())
         obs = NonBusinessFlowObservability()
-
+        
         obs.start_trace(
             gmail_id=email.gmail_id,
             thread_id=email.thread_id,
@@ -145,64 +142,27 @@ class NonBusinessFlow(Logger):
         )
 
         try:
-            self.log(f"Inserting email {email.gmail_id} into database for emails table")
-
-            insert_email(
-                email_db_id=uuid_id,
-                gmail_id=email.gmail_id,
-                thread_id=email.thread_id,
-                sender_name=email.sender_name,
-                sender_email=email.sender_email,
-                subject=email.subject,
-                body=email.body,
-            )
-        except Exception as db_error:
-            self.log(
-                f"Failed to insert email {email.gmail_id} into database: {db_error}"
-            )
-            raise
-
-        try:
             result = self._call_llm(email, obs)
 
             self.log(
                 f"Inserting non-business result for email {email.gmail_id} into database for nonbusiness table"
             )
-            insert_nonbusiness(email_db_id=uuid_id, data=result, reviewed=False)
+            insert_nonbusiness(email_db_id=email_db_id, data=result, reviewed=False)
 
             obs.finish_trace(result)
             obs.score_success()
 
-            self.log(
-                f"NonBusinessFlow completed successfully for email: {email.subject}"
-            )
+            self.log(f"NonBusinessFlow completed successfully for email: {email.subject}")
             return result
 
         except Exception as e:
             obs.score_failure(str(e))
-            self.log(
-                f"NonBusinessFlow failed for email: {email.subject} with error: {e}"
+            self.log(f"NonBusinessFlow failed for email: {email.subject} with error: {e}")
+
+            return NonBusinessResult(
+                category="UNKNOWN",
+                confidence=0.0,
+                reasoning=f"NonBusinessFlow failed before classification: {str(e)}",
             )
-            raise
 
 
-if __name__ == "__main__":
-    flow = NonBusinessFlow()
-
-    email = InboundEmail(
-        gmail_id="19e4f237831e9372",
-        thread_id="19e4f237831e9372",
-        sender_name="MegaWinner Lottery",
-        sender_email="testemail00@gmail.com",
-        subject="CONGRATULATIONS!! YOU WON $1,000,000 CASH PRIZE!!",
-        date="2026-05-22 10:03:05+00:00",
-        body="""
-Dear Lucky Winner!! Your email address has been selected as the grand prize winner of one million dollars in our international promo lottery!! CLICK HERE NOW to claim your earnings before they expire!!
-""",
-    )
-
-    result = flow.run(email)
-    print("============== Answer ==============")
-    print(f"NonBusiness Type: {result.nonbusiness_type}")
-    print(f"Confidence: {result.confidence}")
-    print(f"Reasoning: {result.reasoning}")

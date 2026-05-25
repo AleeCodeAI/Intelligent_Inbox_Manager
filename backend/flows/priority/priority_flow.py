@@ -1,9 +1,7 @@
-import uuid
 import logging
 from openai import OpenAI
 
 from schemas import InboundEmail
-from database import insert_email
 from database import insert_priority
 from .priority_observability import PriorityFlowObservability
 from utils.color import Logger
@@ -125,11 +123,10 @@ class PriorityFlow(Logger):
     # Main Flow Method
     # ------------------------------------------------------------------
 
-    def run(self, email: InboundEmail) -> PriorityResult:
+    def run(self, email: InboundEmail, email_db_id: str) -> PriorityResult:
         """Classify email priority and return results."""
         self.log(f"Running PriorityFlow for email: {email.subject}")
 
-        uuid_id = str(uuid.uuid4())
         obs = PriorityFlowObservability()
 
         obs.start_trace(
@@ -142,30 +139,14 @@ class PriorityFlow(Logger):
         )
 
         try:
-            self.log(f"Inserting email {email.gmail_id} into database for emails table")
-            
-            insert_email(
-                email_db_id=uuid_id,
-                gmail_id=email.gmail_id,
-                thread_id=email.thread_id,
-                sender_name=email.sender_name,
-                sender_email=email.sender_email,
-                subject=email.subject,
-                body=email.body,
-            )
-        except Exception as db_error:
-            self.log(f"Failed to insert email {email.gmail_id} into database: {db_error}")
-            raise
-
-        try:
             result = self._call_llm(email, obs)
 
             self.log(f"Inserting priority result for email {email.gmail_id} into database for priorities table")
             insert_priority(
-                email_db_id=uuid_id, 
-                data=result, 
-                reviewed=False
-                )
+                email_db_id=email_db_id,
+                data=result,
+                reviewed=False,
+            )
 
             obs.finish_trace(result)
             obs.score_success()
@@ -176,25 +157,9 @@ class PriorityFlow(Logger):
         except Exception as e:
             obs.score_failure(str(e))
             self.log(f"PriorityFlow failed for email: {email.subject} with error: {e}")
-            raise
 
-if __name__ == "__main__":
-    flow = PriorityFlow()
-
-    email = InboundEmail(
-        gmail_id="19e4f235400a0e36",
-        thread_id="19e4f235400a0e36",
-        sender_name="Dr. Aris Vance",
-        sender_email="testemail00@gmail.com",
-        subject="Request for Architecture Review Appointment",
-        date="2026-05-22 10:02:56+00:00",
-        body="""
-Hi, I am looking to schedule a 30-minute consultation meeting next Tuesday to review our agent workflow design choices. Please let me know your availability so we can confirm an appointment.
-"""
-    )
-
-    result = flow.run(email)
-    print("============== Answer ==============")
-    print(f"Priority Type: {result.priority_type}")
-    print(f"Confidence: {result.confidence}")
-    print(f"Reasoning: {result.reasoning}")
+            return PriorityResult(
+                priority_type="UNKNOWN",
+                confidence=0.0,
+                reasoning=f"PriorityFlow failed before classification: {str(e)}",
+            )

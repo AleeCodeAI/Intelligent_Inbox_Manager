@@ -1,10 +1,8 @@
-import uuid
 import logging
 from openai import OpenAI
 import asyncio
 
 from schemas import InboundEmail
-from database import insert_email
 from database import insert_basic, mark_basic_reviewed
 from flows.basic.agentic_rag.agentic_rag import AgenticRag
 from utils.send_email import send_to_n8n
@@ -158,44 +156,25 @@ class BasicFlow(Logger):
     # Public entry point
     # ------------------------------------------------------------------
 
-    def run(self, email: InboundEmail) -> BasicEmailResponse:
+    def run(self, email: InboundEmail, email_db_id: str) -> BasicEmailResponse:
         self.log(f"Processing {email.gmail_id} from {email.sender_email}")
-
-        uuid_id = str(uuid.uuid4())
-        session_id = email.thread_id
 
         obs = BasicFlowObservability()
         obs.start_trace(
-            session_id=session_id,
+            thread_id=email.thread_id,
             gmail_id=email.gmail_id,
             sender_email=email.sender_email,
             sender_name=email.sender_name,
             subject=email.subject,
             body=email.body,
         )
-        
-        try:
-            self.log(f"Inserting email {email.gmail_id} into database for emails table")
-            
-            insert_email(
-                email_db_id=uuid_id,
-                gmail_id=email.gmail_id,
-                thread_id=email.thread_id,
-                sender_name=email.sender_name,
-                sender_email=email.sender_email,
-                subject=email.subject,
-                body=email.body,
-            )
-        except Exception as db_error:
-            self.log(f"Failed to insert email {email.gmail_id} into database: {db_error}")
-            raise
 
         basic_inserted = False
 
         try:
             self.log(f"Step 1: Building LLM input for email {email.gmail_id}")
             obs.start_rag_span()
-            llm_input = self._build_llm_input(email, session_id=session_id)
+            llm_input = self._build_llm_input(email, session_id=email.thread_id)
             obs.end_rag_span()
 
             self.log(f"Step 2: Calling LLM for email {email.gmail_id}")
@@ -220,7 +199,7 @@ class BasicFlow(Logger):
                 f"into database for basic_flow table"
             )
             insert_basic(
-                email_db_id=uuid_id,
+                email_db_id=email_db_id,
                 rag_answer=llm_input.rag_answer,
                 rag_status=result["status"],
                 citations=[c.model_dump() for c in llm_input.citations],
@@ -232,7 +211,7 @@ class BasicFlow(Logger):
                 f"Step 6: Marking email {email.gmail_id} as reviewed in database"
             )
             try:
-                mark_basic_reviewed(email_db_id=uuid_id)
+                mark_basic_reviewed(email_db_id=email_db_id)
             except Exception as review_error:
                 self.log(
                     f"Failed to mark email {email.gmail_id} "
@@ -254,7 +233,7 @@ class BasicFlow(Logger):
             if not basic_inserted:
                 try:
                     insert_basic(
-                        email_db_id=uuid_id,
+                        email_db_id=email_db_id,
                         rag_status="failed",
                         failure_reason=str(exc),
                         needs_manual_reply=True,
@@ -271,22 +250,3 @@ class BasicFlow(Logger):
                     "This email has been flagged for manual review."
                 )
             )
-
-
-if __name__ == "__main__":
-    flow = BasicFlow()
-
-    email = InboundEmail(
-        gmail_id="19e4f232f06674f4",
-        thread_id="19e4f232f06674f4",
-        sender_name="Alpha Ventures",
-        sender_email="testemail00@gmail.com",
-        subject="Consulting for early-stage AI product",
-        date="2026-05-22 10:02:46+00:00",
-        body="""
-Hello, we have an early-stage product using AI and need someone to review our system architecture and identify failure points. What does your consulting typically involve?
-"""
-    )
-
-    response = flow.run(email)
-    print(response)
