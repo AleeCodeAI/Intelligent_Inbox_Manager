@@ -10,7 +10,7 @@ from .agentic_rag_evals_schemas import (
     MetricStats,
 )
 from .receive_email_schemas import InboundEmail, InboundEmailBatch
-from .executor import EmailProcessed
+from .executor import EmailProcessed, ExecutorResult
 from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse
 from .priority_flow_schemas import PriorityResult
 from .nonbusiness_flow_schemas import NonBusinessResult
