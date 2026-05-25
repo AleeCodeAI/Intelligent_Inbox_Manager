@@ -3,7 +3,13 @@ import logging
 from datetime import datetime, timezone
 from openai import OpenAI
 
-from schemas import InboundEmail, EmailProcessed, ExecutorResult
+from schemas import (
+    InboundEmail,
+    InboundEmailBatch,
+    EmailProcessed,
+    ExecutorResult,
+)
+
 from database import (
     insert_email,
     get_email_by_thread,
@@ -11,6 +17,7 @@ from database import (
 )
 
 from .executor_observability import ExecutorObservability
+from .email_receiver import EmailReceiver
 from utils.color import Logger
 
 from flows import (
@@ -33,16 +40,21 @@ class Executor(Logger):
         self.log("Initializing EXECUTOR...")
 
         self.settings = MainSettings()
+
         self.openrouter = OpenAI(
             api_key=self.settings.OPENROUTER_API_KEY,
             base_url=self.settings.OPENROUTER_URL,
         )
+
         self.groq = OpenAI(
             api_key=self.settings.GROQ_API_KEY,
             base_url=self.settings.GROQ_URL,
         )
+
         self.gpt_nano_model = self.settings.GPT_NANO_MODEL
         self.gpt_oss_model = self.settings.GPT_OSS_MODEL
+
+        self.email_receiver = EmailReceiver()
 
         self.log("Initialized EXECUTOR")
 
@@ -53,6 +65,7 @@ class Executor(Logger):
     def _user_prompt(self, email: InboundEmail) -> str:
         return f"""
         Subject: {email.subject}
+
         Message:
         {email.body}
         """
@@ -64,6 +77,7 @@ class Executor(Logger):
         ]
 
     def _call_llm(self, email: InboundEmail, obs: ExecutorObservability) -> ExecutorResult:
+
         self.log("Calling LLM providers for classification...")
 
         providers = [
@@ -72,12 +86,17 @@ class Executor(Logger):
         ]
 
         messages = self._make_messages(email)
+
         system_prompt = messages[0]["content"]
         user_content = messages[1]["content"]
 
-        obs.start_generation(system_prompt=system_prompt, user_content=user_content)
+        obs.start_generation(
+            system_prompt=system_prompt,
+            user_content=user_content,
+        )
 
         last_error = None
+
         for provider_name, client, model in providers:
             try:
                 self.log(f"Trying LLM provider: {provider_name}")
@@ -90,8 +109,9 @@ class Executor(Logger):
                 )
 
                 result = raw.choices[0].message.parsed
+
                 usage = raw.usage
-                cost = getattr(usage, 'cost', 0) or 0
+                cost = getattr(usage, "cost", 0) or 0
 
                 obs.end_generation(
                     result=result,
@@ -103,7 +123,14 @@ class Executor(Logger):
                 )
 
                 self.log(f"{provider_name} response generated successfully")
-                self.log(f"Tokens used: {usage.total_tokens}, Prompt tokens: {usage.prompt_tokens}, Completion tokens: {usage.completion_tokens} and total cost: ${cost:.8f}")
+
+                self.log(
+                    f"Tokens used: {usage.total_tokens}, "
+                    f"Prompt tokens: {usage.prompt_tokens}, "
+                    f"Completion tokens: {usage.completion_tokens}, "
+                    f"Total cost: ${cost:.8f}"
+                )
+
                 return result
 
             except Exception as e:
@@ -114,19 +141,18 @@ class Executor(Logger):
         raise last_error
 
     # ------------------------------------------------------------------
-    # Main Flow Method
+    # Single Email Processor
     # ------------------------------------------------------------------
 
-    def run(self, email: InboundEmail) -> EmailProcessed:
+    def _process_email(self, email: InboundEmail) -> EmailProcessed | None:
         self.log(f"Running Executor for email: {email.subject}")
 
-        # --- Deduplication: skip if thread already processed ---
         existing = get_email_by_thread(email.thread_id)
         if existing:
             self.log(f"Thread {email.thread_id} already exists in database, skipping.")
             return None
 
-        uuid_id = str(uuid.uuid4())
+        uuid_id = str(uuid.uuid4())  # This is your email_db_id
         obs = ExecutorObservability()
 
         obs.start_trace(
@@ -138,11 +164,12 @@ class Executor(Logger):
             body=email.body,
         )
 
-        # --- Insert raw email into database ---
+        email_inserted = False
+
         try:
             self.log(f"Inserting email {email.gmail_id} into database")
             insert_email(
-                email_db_id=uuid_id,
+                email_db_id=uuid_id,  # ← This is the key
                 gmail_id=email.gmail_id,
                 thread_id=email.thread_id,
                 sender_name=email.sender_name,
@@ -150,32 +177,24 @@ class Executor(Logger):
                 subject=email.subject,
                 body=email.body,
             )
-        except Exception as db_error:
-            self.log(f"Failed to insert email {email.gmail_id} into database: {db_error}")
-            raise
+            email_inserted = True
 
-        # --- Classify and route ---
-        try:
             result = self._call_llm(email, obs)
-
             self.log(f"Classification result: {result.classification} (confidence: {result.confidence})")
 
+            # Pass email_db_id to the flows
             if result.classification == "BASIC":
                 self.log("Routing to BasicFlow...")
-                BasicFlow().run(email)
-
+                BasicFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
             elif result.classification == "PRIORITY":
                 self.log("Routing to PriorityFlow...")
-                PriorityFlow().run(email)
-
+                PriorityFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
             elif result.classification == "NON_BUSINESS":
                 self.log("Routing to NonBusinessFlow...")
-                NonBusinessFlow().run(email)
-
+                NonBusinessFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
             else:
                 self.log(f"Unknown classification: {result.classification}, skipping routing.")
 
-            # --- Build EmailProcessed ---
             processed = EmailProcessed(
                 gmail_id=email.gmail_id,
                 result=result,
@@ -183,8 +202,8 @@ class Executor(Logger):
                 success=True,
             )
 
-            # --- Persist and observe ---
-            insert_processing(email_db_id=uuid_id, data=processed)
+            self.log(f"Inserting processing result for email {processed.gmail_id} into database")
+            insert_processing(email_db_id=uuid_id, data=processed)  # ← Added email_db_id
 
             obs.finish_trace(processed)
             obs.score_success()
@@ -196,17 +215,80 @@ class Executor(Logger):
             fallback_result = ExecutorResult(
                 classification="UNKNOWN",
                 confidence=0.0,
-                reasoning=f"Executor failed before classification: {str(e)}",
+                reasoning=f"Executor failed: {str(e)}",
             )
 
             processed = EmailProcessed(
                 gmail_id=email.gmail_id,
-                result=result if 'result' in locals() else fallback_result,
+                result=result if "result" in locals() else fallback_result,
                 processed_date=datetime.now(timezone.utc),
                 success=False,
             )
 
-            insert_processing(gmail_id=email.gmail_id, data=processed)
+            if email_inserted:
+                insert_processing(email_db_id=uuid_id, data=processed)  # ← Added email_db_id
+
             obs.score_failure(str(e))
             self.log(f"Executor failed for email: {email.subject} with error: {e}")
-            raise
+            return processed
+
+    # ------------------------------------------------------------------
+    # Main Batch Runner
+    # ------------------------------------------------------------------
+
+    def run(self) -> list[EmailProcessed]:
+        self.log("Fetching emails from EmailReceiver...")
+
+        batch: InboundEmailBatch = self.email_receiver.get_emails()
+
+        self.log(f"Fetched {batch.total} emails")
+
+        processed_emails: list[EmailProcessed] = []
+
+        for email in batch.emails:
+            try:
+                self.log(
+                    f"Processing email "
+                    f"{email.gmail_id} "
+                    f"({email.subject})"
+                )
+
+                result = self._process_email(email)
+
+                if result:
+                    processed_emails.append(result)
+
+            except Exception as e:
+                self.log(
+                    f"Failed processing email "
+                    f"{email.gmail_id}: {e}"
+                )
+
+        self.log(
+            f"Executor finished. "
+            f"Successfully processed "
+            f"{len(processed_emails)} emails."
+        )
+
+        return processed_emails
+
+if __name__ == "__main__":
+    executor = Executor()
+
+    try:
+        results = executor.run()
+
+        print("\n" + "=" * 50)
+        print("EXECUTOR FINISHED")
+        print(f"Processed Emails: {len(results)}")
+        print("=" * 50)
+
+        for result in results:
+            print(
+                f"- {result.gmail_id} | "
+                f"{result.result.classification} | "
+                f"Success: {result.success}"
+            )
+
+    except Exception as e:
+        print(f"\nExecutor crashed: {e}")
