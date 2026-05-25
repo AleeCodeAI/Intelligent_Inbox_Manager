@@ -31,9 +31,13 @@ def insert_email(email_db_id: str,
     finally:
         db.close()
 
-def get_email(db, gmail_id: str):
-    return (
-        db.query(Email)
-        .filter(Email.gmail_id == gmail_id)
-        .first()
-    )
+def get_email_by_thread(thread_id: str):
+    db = SessionLocal()
+    try:
+        return (
+            db.query(Email)
+            .filter(Email.thread_id == thread_id)
+            .first()
+        )
+    finally:
+        db.close()
