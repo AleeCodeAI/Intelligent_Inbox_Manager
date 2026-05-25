@@ -5,7 +5,7 @@ from uuid import uuid4
 import json
 
 from configs import MainSettings
-from schemas import ExecutorResult
+from schemas import ExecutorResult, EmailProcessed
 
 
 class ExecutorObservability:
@@ -143,7 +143,7 @@ class ExecutorObservability:
     # 3. Trace close
     # ------------------------------------------------------------------
 
-    def finish_trace(self, result: ExecutorResult) -> None:
+    def finish_trace(self, result: EmailProcessed) -> None:
         if not self._trace_id:
             return
         end = datetime.now(timezone.utc)
@@ -155,9 +155,13 @@ class ExecutorObservability:
                 "timestamp": end.isoformat(),
                 "body": {
                     "id": self._trace_id,
-                    "output": json.dumps(result.model_dump()),
+                    "output": json.dumps(result.model_dump(), default=str),
                     "metadata": {
                         "total_latency_ms": _ms(self._trace_start, end),
+                        "classification": result.result.classification,
+                        "confidence": result.result.confidence,
+                        "success": result.success,
+                        "processed_date": result.processed_date.isoformat(),
                     },
                 },
             }
