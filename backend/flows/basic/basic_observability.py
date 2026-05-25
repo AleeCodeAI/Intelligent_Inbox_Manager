@@ -46,7 +46,7 @@ class BasicFlowObservability:
 
     def start_trace(
         self,
-        session_id: str,
+        thread_id: str,
         gmail_id: str,
         sender_email: str,
         sender_name: str,
@@ -65,7 +65,7 @@ class BasicFlowObservability:
                 "body": {
                     "id": self._trace_id,
                     "name": "basic-flow-email",
-                    "sessionId": session_id,
+                    "sessionId": thread_id,
                     "input": body,
                     "tags": ["basic-flow", "email"],
                     "metadata": {
