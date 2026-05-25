@@ -1,10 +1,15 @@
 import uuid
 import logging
+from datetime import datetime, timezone
 from openai import OpenAI
 
-from schemas import InboundEmail
-from database import insert_email
-from database import insert_priority
+from schemas import InboundEmail, EmailProcessed, ExecutorResult
+from database import (
+    insert_email,
+    get_email_by_thread,
+    insert_processing,
+)
+
 from .executor_observability import ExecutorObservability
 from utils.color import Logger
 
@@ -14,12 +19,11 @@ from flows import (
     NonBusinessFlow,
 )
 
-from schemas import EmailProcessed, ExecutorResult
 from prompts import EXECUTOR_SYSTEM_PROMPT
-
 from configs import MainSettings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 class Executor(Logger):
     name: str = "EXECUTOR"
@@ -47,7 +51,6 @@ class Executor(Logger):
     # ------------------------------------------------------------------
 
     def _user_prompt(self, email: InboundEmail) -> str:
-        """Format email data for classification."""
         return f"""
         Subject: {email.subject}
         Message:
@@ -55,7 +58,6 @@ class Executor(Logger):
         """
 
     def _make_messages(self, email: InboundEmail) -> list[dict]:
-        """Construct messages for the LLM."""
         return [
             {"role": "system", "content": EXECUTOR_SYSTEM_PROMPT},
             {"role": "user", "content": self._user_prompt(email)},
@@ -110,14 +112,19 @@ class Executor(Logger):
 
         self.log("All LLM providers failed")
         raise last_error
-    
+
     # ------------------------------------------------------------------
     # Main Flow Method
     # ------------------------------------------------------------------
 
     def run(self, email: InboundEmail) -> EmailProcessed:
-        """Classify email and return results."""
         self.log(f"Running Executor for email: {email.subject}")
+
+        # --- Deduplication: skip if thread already processed ---
+        existing = get_email_by_thread(email.thread_id)
+        if existing:
+            self.log(f"Thread {email.thread_id} already exists in database, skipping.")
+            return None
 
         uuid_id = str(uuid.uuid4())
         obs = ExecutorObservability()
@@ -131,9 +138,9 @@ class Executor(Logger):
             body=email.body,
         )
 
+        # --- Insert raw email into database ---
         try:
-            self.log(f"Inserting email {email.gmail_id} into database for emails table")
-            
+            self.log(f"Inserting email {email.gmail_id} into database")
             insert_email(
                 email_db_id=uuid_id,
                 gmail_id=email.gmail_id,
@@ -147,23 +154,59 @@ class Executor(Logger):
             self.log(f"Failed to insert email {email.gmail_id} into database: {db_error}")
             raise
 
+        # --- Classify and route ---
         try:
             result = self._call_llm(email, obs)
 
-            self.log(f"Inserting priority result for email {email.gmail_id} into database for priorities table")
-            insert_priority(
-                email_db_id=uuid_id, 
-                data=result, 
-                reviewed=False
-                )
+            self.log(f"Classification result: {result.classification} (confidence: {result.confidence})")
 
-            obs.finish_trace(result)
+            if result.classification == "BASIC":
+                self.log("Routing to BasicFlow...")
+                BasicFlow().run(email)
+
+            elif result.classification == "PRIORITY":
+                self.log("Routing to PriorityFlow...")
+                PriorityFlow().run(email)
+
+            elif result.classification == "NON_BUSINESS":
+                self.log("Routing to NonBusinessFlow...")
+                NonBusinessFlow().run(email)
+
+            else:
+                self.log(f"Unknown classification: {result.classification}, skipping routing.")
+
+            # --- Build EmailProcessed ---
+            processed = EmailProcessed(
+                gmail_id=email.gmail_id,
+                result=result,
+                processed_date=datetime.now(timezone.utc),
+                success=True,
+            )
+
+            # --- Persist and observe ---
+            insert_processing(email_db_id=uuid_id, data=processed)
+
+            obs.finish_trace(processed)
             obs.score_success()
 
-            self.log(f"PriorityFlow completed successfully for email: {email.subject}")
-            return result
+            self.log(f"Executor completed successfully for email: {email.subject}")
+            return processed
 
         except Exception as e:
+            fallback_result = ExecutorResult(
+                classification="UNKNOWN",
+                confidence=0.0,
+                reasoning=f"Executor failed before classification: {str(e)}",
+            )
+
+            processed = EmailProcessed(
+                gmail_id=email.gmail_id,
+                result=result if 'result' in locals() else fallback_result,
+                processed_date=datetime.now(timezone.utc),
+                success=False,
+            )
+
+            insert_processing(gmail_id=email.gmail_id, data=processed)
             obs.score_failure(str(e))
-            self.log(f"PriorityFlow failed for email: {email.subject} with error: {e}")
+            self.log(f"Executor failed for email: {email.subject} with error: {e}")
             raise
