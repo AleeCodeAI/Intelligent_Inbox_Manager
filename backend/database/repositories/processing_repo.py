@@ -3,12 +3,12 @@ from database.models.processing import EmailProcessing
 from schemas import EmailProcessed
 
 
-def insert_processing(gmail_id: str, data: EmailProcessed):
+def insert_processing(email_db_id: str, data: EmailProcessed):
     db = SessionLocal()
     try:
         record = EmailProcessing(
-            email_processing_id=f"proc_{gmail_id}",
-            gmail_id=gmail_id,
+            email_processing_id=f"proc_{email_db_id}",
+            email_db_id=email_db_id,
             classification=data.result.classification,
             confidence=data.result.confidence,
             reasoning=data.result.reasoning,
