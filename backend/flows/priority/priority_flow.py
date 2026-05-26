@@ -31,7 +31,7 @@ class PriorityFlow(Logger):
     """
 
     name: str = "PriorityFlow"
-    color: str = Logger.MAGENTA
+    color: str = Logger.PINK
 
     def __init__(self):
         self.log("Initializing PriorityFlow...")
