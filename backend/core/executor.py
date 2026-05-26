@@ -2,6 +2,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from openai import OpenAI
+import asyncio
 
 from schemas import (
     InboundEmail,
@@ -33,6 +34,24 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 class Executor(Logger):
+    """
+    Executor
+    --------
+    Master orchestration pipeline for inbound email processing.
+
+    Responsibilities:
+    - Fetch inbound emails from EmailReceiver
+    - Prevent duplicate thread processing
+    - Classify emails using LLM providers with failover support
+    - Route emails to the appropriate downstream flow
+    - Persist processing state and metadata
+    - Track observability, tracing, and execution outcomes
+
+    The Executor acts as the central coordination layer of the
+    email automation system and manages the full lifecycle of
+    email ingestion, classification, routing, and processing.
+    """
+    
     name: str = "EXECUTOR"
     color: str = Logger.VIOLET
 
@@ -55,6 +74,12 @@ class Executor(Logger):
         self.gpt_oss_model = self.settings.GPT_OSS_MODEL
 
         self.email_receiver = EmailReceiver()
+
+        self.flow_registry = {
+            "BASIC": BasicFlow(),
+            "PRIORITY": PriorityFlow(),
+            "NON_BUSINESS": NonBusinessFlow(),
+        }
 
         self.log("Initialized EXECUTOR")
 
@@ -144,15 +169,21 @@ class Executor(Logger):
     # Single Email Processor
     # ------------------------------------------------------------------
 
-    def _process_email(self, email: InboundEmail) -> EmailProcessed | None:
+    async def _process_email(self, email: InboundEmail) -> EmailProcessed | None:
+
         self.log(f"Running Executor for email: {email.subject}")
 
         existing = get_email_by_thread(email.thread_id)
+
         if existing:
-            self.log(f"Thread {email.thread_id} already exists in database, skipping.")
+            self.log(
+                f"Thread {email.thread_id} already exists "
+                f"in database, skipping."
+            )
             return None
 
-        uuid_id = str(uuid.uuid4())  # This is your email_db_id
+        uuid_id = str(uuid.uuid4())
+
         obs = ExecutorObservability()
 
         obs.start_trace(
@@ -167,9 +198,16 @@ class Executor(Logger):
         email_inserted = False
 
         try:
-            self.log(f"Inserting email {email.gmail_id} into database")
+            # ----------------------------------------------------------
+            # Insert Email
+            # ----------------------------------------------------------
+
+            self.log(
+                f"Inserting email {email.gmail_id} into database"
+            )
+
             insert_email(
-                email_db_id=uuid_id,  # ← This is the key
+                email_db_id=uuid_id,
                 gmail_id=email.gmail_id,
                 thread_id=email.thread_id,
                 sender_name=email.sender_name,
@@ -177,23 +215,48 @@ class Executor(Logger):
                 subject=email.subject,
                 body=email.body,
             )
+
             email_inserted = True
 
-            result = self._call_llm(email, obs)
-            self.log(f"Classification result: {result.classification} (confidence: {result.confidence})")
+            # ----------------------------------------------------------
+            # Classification
+            # ----------------------------------------------------------
 
-            # Pass email_db_id to the flows
-            if result.classification == "BASIC":
-                self.log("Routing to BasicFlow...")
-                BasicFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
-            elif result.classification == "PRIORITY":
-                self.log("Routing to PriorityFlow...")
-                PriorityFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
-            elif result.classification == "NON_BUSINESS":
-                self.log("Routing to NonBusinessFlow...")
-                NonBusinessFlow().run(email, email_db_id=uuid_id)  # ← Make sure your flow accepts this
+            result = self._call_llm(email, obs)
+
+            self.log(
+                f"Classification result: "
+                f"{result.classification} "
+                f"(confidence: {result.confidence})"
+            )
+
+            # ----------------------------------------------------------
+            # Flow Routing
+            # ----------------------------------------------------------
+
+            flow = self.flow_registry.get(result.classification)
+
+            if flow:
+                self.log(
+                    f"Routing to "
+                    f"{result.classification} flow..."
+                )
+
+                await asyncio.to_thread(
+                    flow.run,
+                    email,
+                    email_db_id=uuid_id,
+                )
+
             else:
-                self.log(f"Unknown classification: {result.classification}, skipping routing.")
+                self.log(
+                    f"Unknown classification: "
+                    f"{result.classification}"
+                )
+
+            # ----------------------------------------------------------
+            # Processing Record
+            # ----------------------------------------------------------
 
             processed = EmailProcessed(
                 gmail_id=email.gmail_id,
@@ -202,16 +265,28 @@ class Executor(Logger):
                 success=True,
             )
 
-            self.log(f"Inserting processing result for email {processed.gmail_id} into database")
-            insert_processing(email_db_id=uuid_id, data=processed)  # ← Added email_db_id
+            self.log(
+                f"Inserting processing result for "
+                f"email {processed.gmail_id}"
+            )
+
+            insert_processing(
+                email_db_id=uuid_id,
+                data=processed,
+            )
 
             obs.finish_trace(processed)
             obs.score_success()
 
-            self.log(f"Executor completed successfully for email: {email.subject}")
+            self.log(
+                f"Executor completed successfully "
+                f"for email: {email.subject}"
+            )
+
             return processed
 
         except Exception as e:
+
             fallback_result = ExecutorResult(
                 classification="UNKNOWN",
                 confidence=0.0,
@@ -220,49 +295,61 @@ class Executor(Logger):
 
             processed = EmailProcessed(
                 gmail_id=email.gmail_id,
-                result=result if "result" in locals() else fallback_result,
+                result=result if "result" in locals()
+                else fallback_result,
                 processed_date=datetime.now(timezone.utc),
                 success=False,
             )
 
             if email_inserted:
-                insert_processing(email_db_id=uuid_id, data=processed)  # ← Added email_db_id
+                insert_processing(
+                    email_db_id=uuid_id,
+                    data=processed,
+                )
 
             obs.score_failure(str(e))
-            self.log(f"Executor failed for email: {email.subject} with error: {e}")
+
+            self.log(
+                f"Executor failed for email: "
+                f"{email.subject} with error: {e}"
+            )
+
             return processed
 
     # ------------------------------------------------------------------
     # Main Batch Runner
     # ------------------------------------------------------------------
 
-    def run(self) -> list[EmailProcessed]:
+    async def run(self) -> list[EmailProcessed]:
+
         self.log("Fetching emails from EmailReceiver...")
 
-        batch: InboundEmailBatch = self.email_receiver.get_emails()
+        batch: InboundEmailBatch = (
+            self.email_receiver.get_emails()
+        )
 
         self.log(f"Fetched {batch.total} emails")
 
+        tasks = [
+            self._process_email(email)
+            for email in batch.emails
+        ]
+
+        results = await asyncio.gather(
+            *tasks,
+            return_exceptions=True,
+        )
+
         processed_emails: list[EmailProcessed] = []
 
-        for email in batch.emails:
-            try:
-                self.log(
-                    f"Processing email "
-                    f"{email.gmail_id} "
-                    f"({email.subject})"
-                )
+        for result in results:
 
-                result = self._process_email(email)
+            if isinstance(result, Exception):
+                self.log(f"Task failed: {result}")
+                continue
 
-                if result:
-                    processed_emails.append(result)
-
-            except Exception as e:
-                self.log(
-                    f"Failed processing email "
-                    f"{email.gmail_id}: {e}"
-                )
+            if result:
+                processed_emails.append(result)
 
         self.log(
             f"Executor finished. "
@@ -273,10 +360,11 @@ class Executor(Logger):
         return processed_emails
 
 if __name__ == "__main__":
+
     executor = Executor()
 
     try:
-        results = executor.run()
+        results = asyncio.run(executor.run())
 
         print("\n" + "=" * 50)
         print("EXECUTOR FINISHED")
