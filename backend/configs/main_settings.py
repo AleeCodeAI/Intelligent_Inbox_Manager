@@ -26,6 +26,7 @@ class MainSettings(BaseSettings):
     N8N_GET_EMAILS_WEBHOOK_URL:str
     SEND_EXAMPLE_EMAILS_N8N_URL: str
     SEND_EMAILS: str
+    MARK_CALENDAR: str
 
     # ------------------- Postgressl credentials ------------------ #
     POSTGRESQL_URL: str
