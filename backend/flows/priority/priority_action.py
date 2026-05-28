@@ -14,28 +14,39 @@ class PriorityAction(Logger):
         self.log(f"Executing action for email ID: {priority_email.gmail_id} with priority type: {priority_email.priority_type}")
 
         try:
+            # -------------------------------------------------------------------
+            # Appointment Handling
+            # -------------------------------------------------------------------
+
             if priority_email.priority_type.upper() == "APPOINTMENT" and priority_email.calendar_details:
+
+                self.log(f"Step 1: Marking calendar for email ID: {priority_email.gmail_id} with event title: {priority_email.calendar_details.title}")
                 calendar_details: CalendarEventDetails = priority_email.calendar_details
-                result = mark_calendar(
+                calendar_result = mark_calendar(
                     title=calendar_details.title,
                     start=calendar_details.start,
                     end=calendar_details.end
                 )
-                self.log(f"Calendar event created for ID: {result.get('id')} with status: {result.get('status')}")
-                self.log(f"Rendering appointment confirmation email for email ID: {priority_email.gmail_id}")
+                self.log(f"Calendar event created for ID: {calendar_result.get('id')} with status: {calendar_result.get('status')}")
+
+                self.log(f"Step 2: Rendering appointment confirmation email for email ID: {priority_email.gmail_id}")
                 html_body = render_appointment_confirmation(
                     recipient_name=priority_email.sender_name, # the email will be received by the sender, so we use their name as recipient_name
                     title=calendar_details.title,
                     start=calendar_details.start,
                     end=calendar_details.end
                 )
-                self.log(f"Sending appointment confirmation email for email ID: {priority_email.gmail_id}")
-                result = send_to_n8n({
+                self.log(f"Step 3: Sending appointment confirmation email for email ID: {priority_email.gmail_id}")
+                email_result = send_to_n8n({
                     "id": priority_email.gmail_id,
                     "body": html_body,
                     "email_type": "PRIORITY"
                 })
-                self.log(f"Appointment confirmation email sent with status: {result['status']} for email ID: {result['emailId']}")
+                self.log(f"Appointment confirmation email sent with status: {email_result['status']} for email ID: {email_result['emailId']}")
+
+            # -------------------------------------------------------------------
+            # Manual Response Handling
+            # -------------------------------------------------------------------
 
             self.log(f"Rendering manual response for email ID: {priority_email.gmail_id}")
             html_body = render_email(
