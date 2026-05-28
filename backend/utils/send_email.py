@@ -42,9 +42,9 @@ def send_to_n8n(data):
 
 if __name__ == "__main__":
     email_payload = {
-        "id": "19e4f235400a0e36",
+        "id": "19e6318b23834af4",
         "body": "Hello,\n\nJust a quick update: the task has been completed successfully.\n\nBest regards,\nAlee",
-        "email_type": "NONBUSINESS",
+        "email_type": "BASIC",
     }
     
     result = send_to_n8n(email_payload)
