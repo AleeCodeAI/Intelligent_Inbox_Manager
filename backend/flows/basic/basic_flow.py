@@ -5,12 +5,14 @@ import asyncio
 from schemas import InboundEmail
 from database import insert_basic, mark_basic_reviewed
 from flows.basic.agentic_rag.agentic_rag import AgenticRag
+
 from utils.send_email import send_to_n8n
 from utils.color import Logger
+from utils.template import render_email
 
 from schemas import BasicLLMInput, BasicEmailResponse
 from prompts import BASIC_SYSTEM_PROMPT
-from .template import render_email
+
 from .basic_observability import BasicFlowObservability  
 
 from configs import MainSettings
