@@ -13,7 +13,7 @@ from schemas import (
 
 from database import (
     insert_email,
-    get_email_by_thread,
+    get_email_by_gmail_id,
     insert_processing,
 )
 
@@ -174,11 +174,11 @@ class Executor(Logger):
 
         self.log(f"Running Executor for email: {email.subject}")
 
-        existing = get_email_by_thread(email.thread_id)
+        existing = get_email_by_gmail_id(email.gmail_id)
 
         if existing:
             self.log(
-                f"Thread {email.thread_id} already exists "
+                f"Email {email.gmail_id} already exists "
                 f"in database, skipping."
             )
             return None
