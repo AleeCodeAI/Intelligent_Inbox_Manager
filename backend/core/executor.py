@@ -88,11 +88,12 @@ class Executor(Logger):
     # ------------------------------------------------------------------
 
     def _user_prompt(self, email: InboundEmail) -> str:
+        body = email.body[:1000]
         return f"""
         Subject: {email.subject}
 
         Message:
-        {email.body}
+        {body}
         """
 
     def _make_messages(self, email: InboundEmail) -> list[dict]:
