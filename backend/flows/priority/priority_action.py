@@ -92,10 +92,10 @@ class PriorityAction(Logger):
             return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
-    # Example usage
     action = PriorityAction()
+    gmail_id = input("Enter Gmail ID: ") # manually input the gmail_id for testing purposes
     test_email = priotiy_action(
-        gmail_id="19e6318b957465ec",
+        gmail_id=gmail_id,
         sender_name="John Doe",
         priority_type="APPOINTMENT",
         manual_response="Thank you for reaching out. I've scheduled a meeting for us to discuss this further. Please let me know if the proposed time works for you or if you'd like to suggest an alternative.",

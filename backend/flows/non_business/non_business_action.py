@@ -34,8 +34,9 @@ class NonBusinessAction(Logger):
 
 if __name__ == "__main__":
     action = NonBusinessAction()
+    gmail_id = input("Enter Gmail ID: ") # manually input the gmail_id for testing purposes
     test_action = nonbusiness_action(
-        gmail_id="19e65562885fc360",
+        gmail_id=gmail_id,
         sender_name="John Doe",
         manual_response="I am currently unavailable. I will get back to you as soon as possible.",
         nonbusiness_type="PERSONAL"
