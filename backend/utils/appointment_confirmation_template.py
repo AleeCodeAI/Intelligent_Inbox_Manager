@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 
 APPOINTMENT_CONFIRMATION_TEMPLATE = """\
 <!DOCTYPE html>
@@ -108,6 +109,10 @@ APPOINTMENT_CONFIRMATION_TEMPLATE = """\
 """
 
 
+def _format_datetime(iso_string: str) -> str:
+    dt = datetime.fromisoformat(iso_string)
+    return dt.strftime("%A, %B %d · %I:%M %p")
+
 def render_appointment_confirmation(
     recipient_name: Optional[str],
     title: str,
@@ -118,6 +123,6 @@ def render_appointment_confirmation(
     return APPOINTMENT_CONFIRMATION_TEMPLATE.format(
         recipient_name=name,
         title=title,
-        start=start,
-        end=end,
+        start=_format_datetime(start),
+        end=_format_datetime(end),
     )
