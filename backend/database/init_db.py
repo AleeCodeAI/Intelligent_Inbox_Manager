@@ -7,6 +7,7 @@ from database.models.email import Email
 from database.models.processing import EmailProcessing
 from database.models.basic import BasicEmailData
 from database.models.priority import PriorityEmailData
+from database.models.appointment import Appointment
 from database.models.nonbusiness import NonBusinessEmailData
 
 def init_db():
