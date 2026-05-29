@@ -3,6 +3,8 @@ from utils.color import Logger
 from utils.send_email import send_to_n8n
 from utils.template import render_email
 from utils.appointment_confirmation_template import render_appointment_confirmation
+from database import insert_appointment, get_email_by_gmail_id
+from schemas import Appointment
 
 from schemas import PriorityAction as priotiy_action, CalendarEventDetails
 
@@ -44,6 +46,28 @@ class PriorityAction(Logger):
                 })
                 self.log(f"Appointment confirmation email sent with status: {email_result['status']} for email ID: {email_result['emailId']}")
 
+                self.log(f"Step 4: Inserting appointment record into database for email ID: {priority_action.gmail_id}")
+                email_record = get_email_by_gmail_id(priority_action.gmail_id)
+
+                try:
+                    email_record = get_email_by_gmail_id(priority_action.gmail_id)
+                    if not email_record:
+                        self.log(f"Email record not found for gmail_id: {priority_action.gmail_id}")
+                    else:
+                        appointment = Appointment(
+                            email_db_id=email_record.email_db_id,
+                            event_id=calendar_result.get("id"),
+                            event_title=calendar_details.title,
+                            event_start=calendar_details.start,
+                            event_end=calendar_details.end,
+                            calendar_status=calendar_result.get("status"),
+                            confirmation_email_status=email_result.get("status")
+                        )
+                        insert_appointment(appointment)
+                        self.log(f"Appointment record inserted for email ID: {priority_action.gmail_id}")
+                except Exception as db_error:
+                    self.log(f"Failed to insert appointment record: {str(db_error)}")
+
             # -------------------------------------------------------------------
             # Manual Response Handling
             # -------------------------------------------------------------------
@@ -64,14 +88,14 @@ class PriorityAction(Logger):
             return result
 
         except Exception as e:
-            self.log(f"Error executing action: {str(e)}", level="error")
+            self.log(f"Error executing action: {str(e)}")
             return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     # Example usage
     action = PriorityAction()
     test_email = priotiy_action(
-        gmail_id="19e65562885fc360",
+        gmail_id="19e6318b957465ec",
         sender_name="John Doe",
         priority_type="APPOINTMENT",
         manual_response="Thank you for reaching out. I've scheduled a meeting for us to discuss this further. Please let me know if the proposed time works for you or if you'd like to suggest an alternative.",
