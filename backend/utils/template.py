@@ -22,10 +22,10 @@ HTML_TEMPLATE = """\
           <tr>
             <td style="background:#122d4b;padding:28px 40px 24px;">
               <p style="margin:0 0 6px 0;font-family:'DM Sans',Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#7fa8c9;">
-                Re
+                A personal note
               </p>
               <h1 style="margin:0;font-family:'Lora',Georgia,serif;font-size:22px;font-weight:600;color:#e8f0f7;line-height:1.3;">
-                {subject}
+                Glad you reached out.
               </h1>
             </td>
           </tr>
@@ -92,10 +92,9 @@ def _to_paragraphs(plain_text: str) -> str:
     return "\n              ".join(_PARAGRAPH.format(text=p) for p in paragraphs)
 
 
-def render_email(recipient_name: Optional[str], body: str, subject: str) -> str:
+def render_email(recipient_name: Optional[str], body: str) -> str:
     name = recipient_name or "there"
     return HTML_TEMPLATE.format(
         recipient_name=name,
         body_paragraphs=_to_paragraphs(body),
-        subject=subject,
     )
