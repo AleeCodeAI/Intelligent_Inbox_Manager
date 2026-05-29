@@ -10,18 +10,18 @@ class PriorityAction(Logger):
     name: str = "PriorityAction"
     color: str = Logger.PINK
 
-    def run(self, priority_email: priotiy_action):
-        self.log(f"Executing action for email ID: {priority_email.gmail_id} with priority type: {priority_email.priority_type}")
+    def run(self, priority_action: priotiy_action):
+        self.log(f"Executing action for email ID: {priority_action.gmail_id} with priority type: {priority_action.priority_type}")
 
         try:
             # -------------------------------------------------------------------
             # Appointment Handling
             # -------------------------------------------------------------------
 
-            if priority_email.priority_type.upper() == "APPOINTMENT" and priority_email.calendar_details:
+            if priority_action.priority_type.upper() == "APPOINTMENT" and priority_action.calendar_details:
 
-                self.log(f"Step 1: Marking calendar for email ID: {priority_email.gmail_id} with event title: {priority_email.calendar_details.title}")
-                calendar_details: CalendarEventDetails = priority_email.calendar_details
+                self.log(f"Step 1: Marking calendar for email ID: {priority_action.gmail_id} with event title: {priority_action.calendar_details.title}")
+                calendar_details: CalendarEventDetails = priority_action.calendar_details
                 calendar_result = mark_calendar(
                     title=calendar_details.title,
                     start=calendar_details.start,
@@ -29,16 +29,16 @@ class PriorityAction(Logger):
                 )
                 self.log(f"Calendar event created for ID: {calendar_result.get('id')} with status: {calendar_result.get('status')}")
 
-                self.log(f"Step 2: Rendering appointment confirmation email for email ID: {priority_email.gmail_id}")
+                self.log(f"Step 2: Rendering appointment confirmation email for email ID: {priority_action.gmail_id}")
                 html_body = render_appointment_confirmation(
-                    recipient_name=priority_email.sender_name, # the email will be received by the sender, so we use their name as recipient_name
+                    recipient_name=priority_action.sender_name, # the email will be received by the sender, so we use their name as recipient_name
                     title=calendar_details.title,
                     start=calendar_details.start,
                     end=calendar_details.end
                 )
-                self.log(f"Step 3: Sending appointment confirmation email for email ID: {priority_email.gmail_id}")
+                self.log(f"Step 3: Sending appointment confirmation email for email ID: {priority_action.gmail_id}")
                 email_result = send_to_n8n({
-                    "id": priority_email.gmail_id,
+                    "id": priority_action.gmail_id,
                     "body": html_body,
                     "email_type": "PRIORITY"
                 })
@@ -48,15 +48,15 @@ class PriorityAction(Logger):
             # Manual Response Handling
             # -------------------------------------------------------------------
 
-            self.log(f"Rendering manual response for email ID: {priority_email.gmail_id}")
+            self.log(f"Rendering manual response for email ID: {priority_action.gmail_id}")
             html_body = render_email(
-                recipient_name=priority_email.sender_name, # the email will be received by the sender, so we use their name as recipient_name
-                body=priority_email.manual_response
+                recipient_name=priority_action.sender_name, # the email will be received by the sender, so we use their name as recipient_name
+                body=priority_action.manual_response
                 )
 
-            self.log(f"Sending manual response for email ID: {priority_email.gmail_id}")
+            self.log(f"Sending manual response for email ID: {priority_action.gmail_id}")
             result = send_to_n8n({
-                "id": priority_email.gmail_id,
+                "id": priority_action.gmail_id,
                 "body": html_body,
                 "email_type": "PRIORITY"
             })
