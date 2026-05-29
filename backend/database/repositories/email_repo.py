@@ -39,3 +39,11 @@ def get_email_by_thread(thread_id: str):
         return db.query(Email).filter(Email.thread_id == thread_id).first()
     finally:
         db.close()
+
+# as of now, only used in PriorityAction to get email_db_id for inserting appointment, but can be used in future for other flows as well
+def get_email_by_gmail_id(gmail_id: str):
+    db = SessionLocal()
+    try:
+        return db.query(Email).filter(Email.gmail_id == gmail_id).first()
+    finally:
+        db.close()
