@@ -26,7 +26,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 basic_emails.append(json.loads(line))
 
-        return basic_emails[23:25]
+        return basic_emails[26:27]
     
     def load_priority_emails(self):
         priority_emails = []
@@ -35,7 +35,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 priority_emails.append(json.loads(line))
 
-        return priority_emails[7:8]
+        return priority_emails[10:12]
 
     def load_nonbusiness_emails(self):
         nonbusiness_emails = []
@@ -44,7 +44,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 nonbusiness_emails.append(json.loads(line))
 
-        return nonbusiness_emails[5:6]
+        return nonbusiness_emails[8:10]
     
     def load_all_emails(self):
         all_emails = []
