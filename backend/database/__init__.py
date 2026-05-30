@@ -19,3 +19,10 @@ from .repositories.retrieval_repos.get_nonbusiness_emails import get_nonbusiness
 from .repositories.retrieval_repos.get_all_emails import get_all_emails
 from .repositories.retrieval_repos.get_processed_emails import get_all_email_processing
 from .repositories.retrieval_repos.get_all_appointments import get_all_appointments
+
+# ==============================================================================
+# Deleting data from database repository
+# ==============================================================================
+
+from .repositories.delete_repos.delete_emails import delete_email
+
