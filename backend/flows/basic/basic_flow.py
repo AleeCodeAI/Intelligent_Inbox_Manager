@@ -130,6 +130,7 @@ class BasicFlow(Logger):
     def _send(self, email_id: str, html_body: str, obs: BasicFlowObservability):  
 
         obs.start_send_span()
+        last_error = None
         for attempt in range(1, self.settings.N8N_MAX_RETRIES + 1):
             try:
                 self.log(f"Attempt {attempt} to send email via n8n for email ID: {email_id}")
@@ -138,8 +139,12 @@ class BasicFlow(Logger):
                         "id": email_id, 
                         "body": html_body, 
                         "email_type": "BASIC"
-                        }
-                    )
+                    }
+                )
+                
+                if result["status"] == "failed":
+                    raise RuntimeError(f"n8n returned failed status for email ID: {email_id}")
+                
                 self.log(f"Send status: {result['status']}  id: {result['emailId']}")
                 obs.end_send_span(
                     status=result["status"],
@@ -147,12 +152,14 @@ class BasicFlow(Logger):
                     email_id=result["emailId"],
                 )
                 return result
+
             except Exception as e:
-                self.log(f"Attempt {attempt} failed to send email ID: {email_id} with error: {e}")
+                last_error = e
+                self.log(f"Attempt {attempt} failed for email ID: {email_id} — {e}")
                 if attempt == self.settings.N8N_MAX_RETRIES:
                     obs.end_send_span(status="failed", attempts=attempt, email_id=email_id)  
-                    self.log(f"All attempts failed to send email ID: {email_id}")
-                    raise
+                    self.log(f"All {self.settings.N8N_MAX_RETRIES} attempts failed for email ID: {email_id}")
+                    raise last_error
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -171,7 +178,8 @@ class BasicFlow(Logger):
             body=email.body,
         )
 
-        basic_inserted = False
+        basic_inserted = False # Tracks whether a basic_flow record was already created to avoid duplicates.
+        llm_input = None # Holds the RAG output so it can be persisted if later steps fail.
 
         try:
             self.log(f"Step 1: Building LLM input for email {email.gmail_id}")
@@ -192,7 +200,7 @@ class BasicFlow(Logger):
             result = self._send(email.gmail_id, html, obs)
 
             self.log(
-                f"Email reply sent successfully for email: "
+                f"Email reply sent for email: "
                 f"{email.gmail_id} with status: {result['status']}"
             )
 
@@ -233,13 +241,24 @@ class BasicFlow(Logger):
             obs.score_failure(reason=str(exc))
 
             if not basic_inserted:
+                self.log(f"basic_inserted=False, attempting failure insert for {email.gmail_id}")
                 try:
                     insert_basic(
-                        email_db_id=email_db_id,
-                        rag_status="failed",
-                        failure_reason=str(exc),
-                        needs_manual_reply=True,
-                    )
+                            email_db_id=email_db_id,
+                            rag_answer=(
+                                llm_input.rag_answer
+                                if llm_input and llm_input.rag_answer
+                                else None
+                            ),
+                            citations=(
+                                [c.model_dump() for c in llm_input.citations]
+                                if llm_input and llm_input.citations
+                                else None
+                            ),
+                            rag_status="failed",
+                            failure_reason=str(exc),
+                            needs_manual_reply=True,
+                        )
                 except Exception as db_error:
                     self.log(
                         f"Failed to insert failure state for "
@@ -252,3 +271,17 @@ class BasicFlow(Logger):
                     "This email has been flagged for manual review."
                 )
             )
+
+if __name__ == "__main__":
+    flow = BasicFlow()
+    # Example usage with a dummy email
+    dummy_email = InboundEmail(
+        gmail_id="19e7308507c0640f",
+        thread_id="19e7308507c0640f",
+        sender_name="Tony Stark",
+        sender_email="testemail00@gmail.com",
+        subject="Partnership proposal for marketing campaign",
+        body="Hey, we have a purely promotional partnership opportunity to hype up a new AI tool. Would you be open to this collaboration? It has no defined execution plan yet.",
+        date="2024-01-01T12:00:00Z"
+        )
+    flow.run(dummy_email, email_db_id="2e1d9b6d-4512-4bbc-b15c-44394261c516")
