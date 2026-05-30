@@ -6,4 +6,4 @@ class AgenticRAGConfig(BaseSettings):
     """
     GREP_TIMEOUT_SECONDS: int = 30
     READ_MAX_LINES: int = 100
-    AGENT_REQUEST_LIMIT: int = 13
+    AGENT_REQUEST_LIMIT: int = 16
