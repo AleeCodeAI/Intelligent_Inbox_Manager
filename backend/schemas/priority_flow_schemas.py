@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 
 # =========================================================
 # priority_flow.py
 # =========================================================
 class PriorityResult(BaseModel):
-    priority_type: str = Field(description="The category assigned to the email.")
-    confidence: Optional[float] = Field(description="The confidence score of the classification, if available.")
+    priority_type: Literal["SENSITIVE", "HIGH_VALUE", "CLIENT_COMMUNICATION", "APPOINTMENT"] = Field(description="The category assigned to the email.")
+    confidence: float = Field(ge=0.0, le=1.0, description="The confidence score of the classification, if available.")
     reasoning: str = Field(description="A concise explanation of why this classification was chosen based on the email content.")
 
 
