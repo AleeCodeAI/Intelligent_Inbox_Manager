@@ -21,6 +21,6 @@ class CalendarEventDetails(BaseModel):
 class PriorityAction(BaseModel):
     gmail_id: str = Field(description="Gmail unique message ID for threading/replying.")
     sender_name: str = Field(description="Name of the email sender.")
-    priority_type: str = Field(description="Category: 'legal', 'appointment', 'financial', etc.")
+    priority_type: Literal["SENSITIVE", "HIGH_VALUE", "CLIENT_COMMUNICATION", "APPOINTMENT"]  = Field(description="Category assigned to the email based on its content and context.")
     manual_response: str = Field(description="The human-written reply body.")
     calendar_details: Optional[CalendarEventDetails] = Field(description="If the action involves scheduling, the proposed event details.")
