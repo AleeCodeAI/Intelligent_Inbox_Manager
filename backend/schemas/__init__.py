@@ -15,3 +15,4 @@ from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse
 from .priority_flow_schemas import PriorityResult, CalendarEventDetails, PriorityAction
 from .nonbusiness_flow_schemas import NonBusinessResult, NonBusinessAction
 from .appointment_schemas import Appointment
+from .priority_flow_evaluation_schemas import SampleResult, ClassStats
