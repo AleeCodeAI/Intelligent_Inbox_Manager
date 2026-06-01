@@ -17,8 +17,8 @@ Classify the email into EXACTLY ONE category:
 
 Before choosing the classification:
 
-1. Read the entire email carefully.
-2. Identify the sender's main intent.
+1. Read the entire email body and subject carefully.
+2. Identify the sender's main intent based on email body and subject.
 3. Identify important context such as:
    - personal relationship or casual communication
    - marketing or promotional intent
@@ -36,7 +36,7 @@ Return ONLY valid JSON in this exact format:
 
 {
   "reasoning": "<concise evidence-based explanation>",
-  "classification": "<PERSONAL | PROMOTIONAL | INFORMATIONAL | SPAM>",
+  "nonbusiness_type": "<PERSONAL | PROMOTIONAL | INFORMATIONAL | SPAM>",
   "confidence": <float>
 }
 
@@ -44,7 +44,7 @@ Return ONLY valid JSON in this exact format:
 
 {
   "reasoning": "The email contains a limited-time discount offer and promotional language encouraging the recipient to purchase a product.",
-  "classification": "PROMOTIONAL",
+  "nonbusiness_type": "PROMOTIONAL",
   "confidence": 0.95
 }
 
