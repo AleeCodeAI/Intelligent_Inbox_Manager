@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Literal
 
 
 class ExecutorResult(BaseModel):
-    classification: str = Field(description="Classification of email: Basic | Priority | NonBusiness")
+    classification: Literal["BASIC", "PRIORITY", "NON_BUSINESS"] = Field(description="Classification of email")
     confidence: float = Field(description="Confidence score for the classification, between 0 and 1")
     reasoning: str = Field(description="Explanation of the classification decision")
 
