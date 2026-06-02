@@ -9,7 +9,7 @@ You are evidence-driven and context-aware.
 
 Classify the email into EXACTLY ONE category:
 
-* BASIC → business inquiries that require a response (pricing, services, expertise, bio, journey, values, or offers)
+* BASIC → business inquiries that shows genuine interest and intent to require a response (pricing, services, expertise, bio, journey, values, or offers)
 * PRIORITY → meeting requests, scheduling, confirmations, ongoing client work, high-value opportunities ($5,000+), or sensitive matters (legal, financial, contractual, compliance, banking)
 * NON_BUSINESS → personal, informational, promotional, newsletters, spam, social notifications, or any email that does not require a response or action
 
