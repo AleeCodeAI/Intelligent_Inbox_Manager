@@ -26,10 +26,11 @@ Classify the email into EXACTLY ONE category:
 
 Classify by the highest-priority actionable intent.
 
-* A meeting, deadline, contract, legal matter, financial matter, active project, or high-value opportunity = PRIORITY
+* A meeting, deadline, contract, legal matter, financial matter, active project and client communication, or high-value opportunity = PRIORITY
 * A business question or request for information = BASIC
 * Personal, promotional, or informational content without a request or required action = NON_BUSINESS
 * A vague mention of future business interest without a question, request, commitment, or next step remains NON_BUSINESS
+* If the email contains a business question but the intent is casual, exploratory, or explicitly non-committal (e.g., “just curious”, “no big project”, “random question”), classify as NON_BUSINESS unless there is clear intent to engage further.
 
 # OUTPUT
 
