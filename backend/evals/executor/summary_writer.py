@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from .confusion_matrix import build_confusion_matrix
 
 
@@ -10,68 +9,54 @@ def write_summary(
 ):
     total = len(results)
 
-    passed = sum(
-        1
-        for r in results
-        if r["passed"]
-    )
-
+    passed = sum(1 for r in results if r["passed"])
     failed = total - passed
 
-    pass_rate = (
-        passed / total * 100
-        if total > 0
-        else 0.0
-    )
+    pass_rate = (passed / total * 100) if total > 0 else 0.0
 
     avg_confidence = (
-        sum(
-            r["result"]["confidence"]
-            for r in results
-        )
-        / total
+        sum(r["result"]["confidence"] for r in results) / total
         if total > 0
         else 0.0
     )
 
+    # -------------------------
+    # Class stats
+    # -------------------------
     classes = sorted(
-        {
-            r["expected_classification"]
-            for r in results
-        }
+        {r["expected_classification"] for r in results}
     )
 
     class_stats = {
-        c: {
-            "total": 0,
-            "passed": 0,
-        }
+        c: {"total": 0, "passed": 0}
         for c in classes
     }
 
     for r in results:
-        expected = r["expected_classification"]
-
-        class_stats[expected]["total"] += 1
+        c = r["expected_classification"]
+        class_stats[c]["total"] += 1
 
         if r["passed"]:
-            class_stats[expected]["passed"] += 1
+            class_stats[c]["passed"] += 1
 
-    failed_cases = [
-        r
-        for r in results
-        if not r["passed"]
-    ]
+    # -------------------------
+    # Failure grouping
+    # -------------------------
+    failed_cases = [r for r in results if not r["passed"]]
 
     wrong_but_confident = [
-        r
-        for r in results
-        if not r["passed"]
-        and r["result"]["confidence"] >= 0.8
+        r for r in failed_cases
+        if r["result"]["confidence"] >= 0.8
     ]
 
+    # -------------------------
+    # Confusion matrix
+    # -------------------------
     confusion, labels = build_confusion_matrix(results)
 
+    # -------------------------
+    # Markdown
+    # -------------------------
     lines = [
         f"# Eval Summary — {run_id}",
         "",
@@ -89,71 +74,45 @@ def write_summary(
         "|-------|-------|--------|-----------|",
     ]
 
-    for cls, stats in class_stats.items():
-
+    for c, s in class_stats.items():
         rate = (
-            stats["passed"]
-            / stats["total"]
-            * 100
-            if stats["total"] > 0
+            (s["passed"] / s["total"] * 100)
+            if s["total"] > 0
             else 0.0
         )
 
         lines.append(
-            f"| {cls} | "
-            f"{stats['total']} | "
-            f"{stats['passed']} | "
-            f"{rate:.1f}% |"
+            f"| {c} | {s['total']} | {s['passed']} | {rate:.1f}% |"
         )
 
     # -------------------------
     # Confusion Matrix
     # -------------------------
-
-    lines += [
-        "",
-        "## Confusion Matrix",
-    ]
+    lines += ["", "## Confusion Matrix"]
 
     lines.append(
-        "| Actual \\ Predicted | "
-        + " | ".join(labels)
-        + " |"
+        "| Actual \\ Predicted | " + " | ".join(labels) + " |"
     )
 
-    lines.append(
-        "|" + "---|" * (len(labels) + 1)
-    )
+    lines.append("|" + "---|" * (len(labels) + 1))
 
     for actual in labels:
-
         row = f"| {actual} |"
 
         for predicted in labels:
-            count = confusion.get(actual, {}).get(predicted, 0)
-            row += f" {count} |"
+            row += f" {confusion.get(actual, {}).get(predicted, 0)} |"
 
         lines.append(row)
 
     # -------------------------
-    # Failed Cases
+    # Failed cases (clean branching)
     # -------------------------
-
-    lines += [
-        "",
-        "## Failed Cases",
-    ]
+    lines += ["", "## Failed Cases"]
 
     if not failed_cases:
-
-        lines.append(
-            "_All samples passed!_ 🎉"
-        )
-
+        lines.append("_All samples passed!_ 🎉")
     else:
-
         for r in failed_cases:
-
             lines += [
                 f"### `{r['gmail_id']}` — {r['subject']}",
                 f"- **Expected:** {r['expected_classification']}",
@@ -162,50 +121,35 @@ def write_summary(
             ]
 
             reasoning = r["result"].get("reasoning")
-
             if reasoning:
-                lines.append(
-                    f"- **Model Reasoning:** {reasoning}"
-                )
+                lines.append(f"- **Reasoning:** {reasoning}")
 
-            lines += [
-                "- **Failures:**",
-                *[
-                    f"  - {failure}"
-                    for failure in r["failures"]
-                ],
-                "",
-            ]
+            body = r.get("body")
+            if body:
+                preview = body[:800].replace("\n", " ")
+                lines.append(f"- **Body Preview:** {preview}")
+
+            lines.append("")
 
     # -------------------------
-    # High Confidence Failures
+    # Confident failures (only if needed)
     # -------------------------
+    lines += ["", "## Confident Failures (confidence ≥ 0.8)"]
 
-    lines += [
-        "",
-        "## Confident Failures (confidence ≥ 0.8)",
-        "> Model was wrong but highly confident.",
-        "",
-    ]
-
-    if not wrong_but_confident:
-
+    if not failed_cases:
+        lines.append("_No failures to analyze._")
+    elif not wrong_but_confident:
+        lines.append("_None — no high-confidence mistakes._ ✅")
+    else:
         lines.append(
-            "_None — model had low confidence on all failures._ ✅"
+            f"**{len(wrong_but_confident)} high-confidence failures**"
         )
 
-    else:
-
-        lines += [
-            f"**{len(wrong_but_confident)} out of {failed} failures** "
-            f"were high-confidence.",
-            "",
-            "| gmail_id | Expected | Predicted | Confidence |",
-            "|----------|----------|-----------|------------|",
-        ]
+        lines.append("")
+        lines.append("| Gmail ID | Expected | Predicted | Confidence |")
+        lines.append("|----------|----------|------------|------------|")
 
         for r in wrong_but_confident:
-
             lines.append(
                 f"| `{r['gmail_id']}` "
                 f"| {r['expected_classification']} "
@@ -213,5 +157,8 @@ def write_summary(
                 f"| {r['result']['confidence']:.3f} |"
             )
 
+    # -------------------------
+    # Write file
+    # -------------------------
     with open(summary_file, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

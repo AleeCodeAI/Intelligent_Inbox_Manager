@@ -19,8 +19,8 @@ class ExecutorEvaluator(Logger):
         self.data_path = base.parent / "data" / "executor_emails_test_data.jsonl"
         self.output_dir = base / "results"
         self.run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.results_file = self.output_dir / f"non_business_flow_results_{self.run_id}.jsonl"
-        self.summary_file = self.output_dir / f"non_business_flow_summary_{self.run_id}.md"
+        self.results_file = self.output_dir / f"executor_results_{self.run_id}.jsonl"
+        self.summary_file = self.output_dir / f"executor_summary_{self.run_id}.md"
         self.flow = Executor()
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -69,6 +69,7 @@ class ExecutorEvaluator(Logger):
         return {
                 "gmail_id": data["gmail_id"],
                 "subject": data["subject"],
+                "body": data["body"][:1000],
                 "expected_classification": data["expected_classification"],
 
                 "result": {
