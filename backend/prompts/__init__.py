@@ -4,3 +4,4 @@ from .basic_flow_prompt import BASIC_SYSTEM_PROMPT
 from .priority_flow_prompt import PRIORITY_SYSTEM_PROMPT
 from .nonbusiness_flow_prompt import NONBUSINESS_SYSTEM_PROMPT
 from .executor_prompt import EXECUTOR_SYSTEM_PROMPT
+from .basic_flow_eval_judge_prompt import BASIC_FLOW_JUDGE_PROMPT
