@@ -14,7 +14,7 @@ class BasicFlowEvalJudge(Logger):
     name: str = "BasicFlowEvalJudge"
     color: str = Logger.TURQUOISE
 
-    def __init__(self):
+    def __init__(self, data_path: Path):
         self.log("Initializing BasicFlowEvalJudge...")
         self.settings = MainSettings()
         self.openrouter = OpenAI(
@@ -28,7 +28,7 @@ class BasicFlowEvalJudge(Logger):
         self.gpt_oss_model = self.settings.GPT_OSS_MODEL
         self.gpt_nano_model = self.settings.GPT_NANO_MODEL
 
-        self.data_path = Path(__file__).parent / "basic_flow_storage.jsonl"
+        self.data_path = data_path
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.results_dir = Path(__file__).parent / "results"
         self.results_dir.mkdir(exist_ok=True)
@@ -114,5 +114,6 @@ class BasicFlowEvalJudge(Logger):
                 self.log(f"Failed to evaluate item {idx + 1}: {e}")
 
 if __name__ == "__main__":
-    judge = BasicFlowEvalJudge()
+    # basic_flow_storage.jsonl contains all good examples, basic_flow_storage_mix_of_good_bad_example.jsonl contains a mix of good and bad examples for more robust evaluation
+    judge = BasicFlowEvalJudge(data_path=Path(__file__).parent / "basic_flow_storage_mix_of_good_bad_example.jsonl")
     judge.run()
