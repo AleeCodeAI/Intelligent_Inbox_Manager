@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg:          #020817;
+  --surface:     #0a1628;
+  --border:      #112240;
+  --navy:        #1e3a5f;
+  --accent:      #4f8ef7;
+  --accent-dim:  #1a3a6b;
+  --accent-glow: rgba(79, 142, 247, 0.12);
+  --text:        #e2e8f0;
+  --text-muted:  #4a6fa5;
+  --white:       #ffffff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Syne', sans-serif;
+}
