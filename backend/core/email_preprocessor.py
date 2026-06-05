@@ -14,6 +14,8 @@ class EmailPreprocessor(Logger):
     name = "EmailPreprocessor"
     color = Logger.CYAN
 
+    MIN_LINE_LENGTH = 20  # lines shorter than this (after cleaning) are noise
+
     def _remove_html(self, text: str) -> str:
         before = len(text)
         text = html.unescape(text)
@@ -28,7 +30,7 @@ class EmailPreprocessor(Logger):
     def _remove_special_characters(self, text: str) -> str:
         before = len(text)
 
-        for char in ('\u200c', '\u200b', '\u200d', '\ufeff', '\u200e', '\u200f'):
+        for char in ('\u200c', '\u200b', '\u200d', '\ufeff', '\u200e', '\u200f', '\u00ad'):
             text = text.replace(char, '')
 
         text = text.replace('\xa0', ' ').replace('\u00a0', ' ')
@@ -37,6 +39,28 @@ class EmailPreprocessor(Logger):
         text = re.sub(r' {2,}', ' ', text)
 
         self.log(f"Special chars normalized ({before} → {len(text)} chars)")
+        return text
+
+    def _remove_urls(self, text: str) -> str:
+        before = len(text)
+
+        # Remove [[LINK]/...] encoded tracking blocks (e.g. Patreon)
+        text = re.sub(r'\[\[LINK\][^\]]*\]', '', text)
+
+        # Collapse standard URLs into [LINK]
+        text = re.sub(
+            r'http[s]?://(?:[a-zA-Z0-9$\-_.+!*\'(),]|(?:%[0-9a-fA-F]{2}))+',
+            '[LINK]',
+            text
+        )
+
+        # Remove inline link labels: "Some Text ( [LINK]/path )" or "( [LINK] )"
+        text = re.sub(r'\s*\(\s*\[LINK\][^)]*\)\s*', ' ', text)
+
+        # Remove any remaining bare [LINK] tokens
+        text = re.sub(r'\[LINK\]\S*', '', text)
+
+        self.log(f"URLs removed ({before} → {len(text)} chars)")
         return text
 
     def _remove_artifacts(self, text: str) -> str:
@@ -54,6 +78,9 @@ class EmailPreprocessor(Logger):
             r'view this email in your browser.*?(?:\n|$)',
             r'add us to your address book.*?(?:\n|$)',
             r'you are receiving this.*?(?:\n|$)',
+            r'please do not reply to this email.*?(?:\n|$)',
+            r'download (?:the )?app.*?(?:\n|$)',
+            r'(?:privacy policy|terms and conditions).*?(?:\n|$)',
         ]
         for pattern in footer_patterns:
             text = re.sub(pattern, '', text, flags=re.IGNORECASE)
@@ -61,22 +88,24 @@ class EmailPreprocessor(Logger):
         self.log(f"Artifacts/footers removed ({before} → {len(text)} chars)")
         return text
 
-    def _remove_urls(self, text: str) -> str:
-        before = len(text)
-        text = re.sub(
-            r'http[s]?://(?:[a-zA-Z0-9$\-_.+!*\'(),]|(?:%[0-9a-fA-F]{2}))+',
-            '[LINK]',
-            text
-        )
-        self.log(f"URLs masked ({before} → {len(text)} chars)")
-        return text
-
     def _normalize(self, text: str) -> str:
-        before_lines = len(text.split('\n'))
-        lines = [line.strip() for line in text.split('\n')]
-        lines = [line for line in lines if line]
-        result = '\n'.join(lines).strip()
-        self.log(f"Normalized lines ({before_lines} → {len(lines)} lines)")
+        before_lines = text.split('\n')
+
+        lines = [line.strip() for line in before_lines]
+
+        # Remove noise: lines too short to carry meaning
+        lines = [line for line in lines if len(line) >= self.MIN_LINE_LENGTH]
+
+        # Deduplicate: preserve order, drop exact repeats
+        seen = set()
+        deduped = []
+        for line in lines:
+            if line not in seen:
+                seen.add(line)
+                deduped.append(line)
+
+        result = '\n'.join(deduped).strip()
+        self.log(f"Normalized: {len(before_lines)} → {len(deduped)} lines (deduped + noise filtered)")
         return result
 
     def clean(self, body: str | None) -> str | None:
@@ -88,13 +117,13 @@ class EmailPreprocessor(Logger):
 
         body = self._remove_html(body)
         body = self._remove_special_characters(body)
-        body = self._remove_artifacts(body)
         body = self._remove_urls(body)
+        body = self._remove_artifacts(body)
         body = self._normalize(body)
 
         self.log(f"Finished cleaning ({len(body)} chars)")
         return body or None
-    
+
 
 if __name__ == "__main__":
     from schemas import InboundEmail, InboundEmailBatch
