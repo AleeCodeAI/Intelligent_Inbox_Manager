@@ -3,7 +3,7 @@ from utils.color import Logger
 from utils.send_email import send_to_n8n
 from utils.template import render_email
 from utils.appointment_confirmation_template import render_appointment_confirmation
-from database import insert_appointment, get_email_by_gmail_id
+from database import insert_appointment, get_email_by_gmail_id, mark_priority_reviewed
 from schemas import Appointment
 
 from schemas import PriorityAction as priotiy_action, CalendarEventDetails
@@ -14,6 +14,9 @@ class PriorityAction(Logger):
 
     def run(self, priority_action: priotiy_action):
         self.log(f"Executing action for email ID: {priority_action.gmail_id} with priority type: {priority_action.priority_type}")
+
+        self.log("Fetching email record from database")
+        email_record = get_email_by_gmail_id(priority_action.gmail_id)
 
         try:
             # -------------------------------------------------------------------
@@ -47,10 +50,8 @@ class PriorityAction(Logger):
                 self.log(f"Appointment confirmation email sent with status: {email_result['status']} for email ID: {email_result['emailId']}")
 
                 self.log(f"Step 4: Inserting appointment record into database for email ID: {priority_action.gmail_id}")
-                email_record = get_email_by_gmail_id(priority_action.gmail_id)
 
                 try:
-                    email_record = get_email_by_gmail_id(priority_action.gmail_id)
                     if not email_record:
                         self.log(f"Email record not found for gmail_id: {priority_action.gmail_id}")
                     else:
@@ -85,6 +86,9 @@ class PriorityAction(Logger):
                 "email_type": "PRIORITY"
             })
             self.log(f"Email sent with status: {result['status']} for email ID: {result['emailId']}")
+
+            self.log("Marking the reviewed as TRUE in database")
+            mark_priority_reviewed(email_record.email_db_id)
             return result
 
         except Exception as e:
