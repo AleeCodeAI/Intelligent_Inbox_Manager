@@ -2,6 +2,7 @@ from utils.send_email import send_to_n8n
 from utils.color import Logger
 from utils.template import render_email
 from schemas import NonBusinessAction as nonbusiness_action
+from database import mark_nonbusiness_reviewed, get_email_by_gmail_id
 
 class NonBusinessAction(Logger):
     name: str = "NonBusinessAction"
@@ -9,6 +10,9 @@ class NonBusinessAction(Logger):
 
     def run(self, nonbusiness_action: nonbusiness_action):
         self.log(f"Executing action for email ID: {nonbusiness_action.gmail_id} with non-business type: {nonbusiness_action.nonbusiness_type}")
+
+        self.log("Fetching email record from database")
+        email_record = get_email_by_gmail_id(nonbusiness_action.gmail_id)
 
         try:
             self.log(f"Rendering manual response for email ID: {nonbusiness_action.gmail_id}")
@@ -26,6 +30,10 @@ class NonBusinessAction(Logger):
                 }
             )
             self.log(f"Manual response sent with status: {result['status']} for email ID: {result['emailId']}")
+
+            self.log("Marking the reviewed as TRUE in database")
+            mark_nonbusiness_reviewed(email_record.email_db_id)
+
             return result
 
         except Exception as e:
