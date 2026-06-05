@@ -4,8 +4,8 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 import logging
 
-from flows import PriorityAction, NonBusinessAction
-from schemas import PriorityAction as PriorityActionSchema, NonBusinessAction as NonBusinessActionSchema
+from flows import PriorityAction, NonBusinessAction, BasicFlowAction
+from schemas import PriorityAction as PriorityActionSchema, NonBusinessAction as NonBusinessActionSchema, BasicAction as BasicFlowActionSchema
 
 router = APIRouter(prefix="/actions", tags=["Actions"])
 logger = logging.getLogger(__name__)
@@ -48,3 +48,22 @@ async def endpoint_nonbusiness_action(request: Request, data: NonBusinessActionS
     except Exception as e:
         logger.error(f"Failed to take action for nonbusiness email {data.gmail_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to take action for nonbusiness email: {str(e)}")
+
+# ============================================================
+# Basic Action
+# ============================================================
+@router.post("/basic-action")
+@limiter.limit("30/minute")
+async def endpoint_basic_action(request: Request, data: BasicFlowActionSchema):
+    try:
+        action = BasicFlowAction()
+        logger.info(f"Taking action for basic email with Gmail ID: {data.gmail_id}")
+        result = action.run(data)
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "result": result}
+        )
+    except Exception as e:
+        logger.error(f"Failed to take action for basic email {data.gmail_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to take action for basic email: {str(e)}")
+
