@@ -2,6 +2,7 @@ from utils.color import Logger
 from utils.send_email import send_to_n8n
 from utils.template import render_email
 from schemas import BasicAction as basic_action
+from database import mark_basic_reviewed, get_email_by_gmail_id
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -29,6 +30,10 @@ class BasicFlowAction(Logger):
                 }
             )
             self.log(f"Manual response sent with status: {result['status']} for email ID: {result['emailId']}")
+
+            self.log("Marking the email reviewed as TRUE and manual reply as FALSE in database")
+            email_record = get_email_by_gmail_id(basic_action.gmail_id)
+            mark_basic_reviewed(email_record.email_db_id)
             return result
 
         except Exception as e:
