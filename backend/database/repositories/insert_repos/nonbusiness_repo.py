@@ -27,8 +27,15 @@ def insert_nonbusiness(
     finally:
         db.close()
 
-def mark_nonbusiness_reviewed(db, email_db_id: str):
-    db.query(NonBusinessEmailData)\
-      .filter(NonBusinessEmailData.email_db_id == email_db_id)\
-      .update({"reviewed": True})
-    db.commit()
+def mark_nonbusiness_reviewed(email_db_id: str):
+    db = SessionLocal()
+
+    try:
+        db.query(NonBusinessEmailData)\
+          .filter(NonBusinessEmailData.email_db_id == email_db_id)\
+          .update({"reviewed": True})
+
+        db.commit()
+
+    finally:
+        db.close()
