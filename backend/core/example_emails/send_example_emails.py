@@ -2,6 +2,7 @@ import requests
 from utils.color import Logger
 import logging
 from configs import MainSettings
+from schemas import InboundEmail
 from pathlib import Path
 import json
 
@@ -26,7 +27,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 basic_emails.append(json.loads(line))
 
-        return basic_emails[26:27]
+        return basic_emails[28:31]
     
     def load_priority_emails(self):
         priority_emails = []
@@ -35,7 +36,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 priority_emails.append(json.loads(line))
 
-        return priority_emails[10:12]
+        return priority_emails[13:15]
 
     def load_nonbusiness_emails(self):
         nonbusiness_emails = []
@@ -44,7 +45,7 @@ class SendExampleEmails(Logger):
             for line in file:
                 nonbusiness_emails.append(json.loads(line))
 
-        return nonbusiness_emails[8:10]
+        return nonbusiness_emails[11:12]
     
     def load_all_emails(self):
         all_emails = []
@@ -71,8 +72,6 @@ class SendExampleEmails(Logger):
             return None
 
 if __name__ == "__main__":
-    from schemas import InboundEmail
-
     sender = SendExampleEmails()
 
     emails = sender.load_all_emails()
