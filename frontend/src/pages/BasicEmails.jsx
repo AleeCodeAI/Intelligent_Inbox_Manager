@@ -1,5 +1,38 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import emailService from '../services/emailService'
+
+const LEFT_LINES = [
+  '{ "email_id": "msg-8f2a",',
+  '  "from": "client@acme.com",',
+  '  "subject": "Urgent: Contract",',
+  '  "classified": "PRIORITY",',
+  '  "confidence": 0.96,',
+  '  "action": "flagged",',
+  '  "routed_to": "admin",',
+  '}',
+  'async function classify(email) {',
+  '  const result = await',
+  '    llm.route(email);',
+  '  return result.category;',
+  '}',
+]
+
+const RIGHT_LINES = [
+  'pipeline.process({',
+  '  rag_enabled: true,',
+  '  fallback: "database",',
+  '  auto_reply: true,',
+  '  confidence_threshold: 0.85,',
+  '  classify: "groq/llama",',
+  '  observe: "langfuse",',
+  '})',
+  '.then(result => {',
+  '  emit("classified", result);',
+  '  router.next(result);',
+  '})',
+  'const flow = FlowExecutor',
+  '  .create({ mode: "auto" })',
+]
 
 export default function BasicEmails() {
   const [emails, setEmails] = useState([])
@@ -9,10 +42,69 @@ export default function BasicEmails() {
   const [notification, setNotification] = useState(null)
   const [sendingId, setSendingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const canvasRef = useRef(null)
+  const animRef = useRef(null)
 
+  // ── Envelope canvas animation (from Home) ──────────────────────────────────
   useEffect(() => {
-    fetchEmails()
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let envelopes = []
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+      envelopes = Array.from({ length: 18 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        sx: (Math.random() - 0.5) * 0.45,
+        sy: (Math.random() - 0.5) * 0.35 + 0.08,
+        size: 10 + Math.random() * 12,
+        op: 0.04 + Math.random() * 0.05,
+      }))
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const drawEnvelope = (x, y, s, op) => {
+      ctx.save()
+      ctx.globalAlpha = op
+      ctx.strokeStyle = '#60a5fa'
+      ctx.fillStyle = '#60a5fa'
+      ctx.lineWidth = 1.1
+      ctx.strokeRect(x - s / 2, y - s / 2, s, s * 0.7)
+      ctx.beginPath()
+      ctx.moveTo(x - s / 2, y - s / 2)
+      ctx.lineTo(x, y - s / 2 + s * 0.33)
+      ctx.lineTo(x + s / 2, y - s / 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      envelopes.forEach(e => {
+        e.x += e.sx
+        e.y += e.sy
+        if (e.x < -40) e.x = canvas.width + 40
+        if (e.x > canvas.width + 40) e.x = -40
+        if (e.y < -40) e.y = canvas.height + 40
+        if (e.y > canvas.height + 40) e.y = -40
+        drawEnvelope(e.x, e.y, e.size, e.op)
+      })
+      animRef.current = requestAnimationFrame(animate)
+    }
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animRef.current)
+      window.removeEventListener('resize', resize)
+    }
   }, [])
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+  useEffect(() => { fetchEmails() }, [])
 
   const fetchEmails = async () => {
     setLoading(true)
@@ -20,11 +112,9 @@ export default function BasicEmails() {
       const response = await emailService.getPendingEmails()
       if (response.status === 'success') {
         setEmails(response.data)
-        const initialResponses = {}
-        response.data.forEach(email => {
-          initialResponses[email.email_db_id] = ''
-        })
-        setManualResponses(initialResponses)
+        const initial = {}
+        response.data.forEach(e => { initial[e.email_db_id] = '' })
+        setManualResponses(initial)
       }
     } catch (error) {
       showNotification('error', 'Failed to fetch emails: ' + (error.response?.data?.message || error.message))
@@ -46,434 +136,247 @@ export default function BasicEmails() {
         email.sender_name,
         manualResponses[email.email_db_id]
       )
-      
-      showNotification('success', `Response sent to ${email.sender_name} successfully!`)
+      showNotification('success', `Response dispatched to ${email.sender_name}!`)
       setTimeout(() => fetchEmails(), 1000)
     } catch (error) {
-      showNotification('error', 'Failed to send response: ' + (error.response?.data?.message || error.message))
+      showNotification('error', 'Failed to send: ' + (error.response?.data?.message || error.message))
     } finally {
       setSendingId(null)
     }
   }
 
   const handleDeleteEmail = async (email) => {
-    if (!window.confirm(`Are you sure you want to delete email from ${email.sender_name}?`)) {
-      return
-    }
-    
+    if (!window.confirm(`Dismiss email from ${email.sender_name}?`)) return
     setDeletingId(email.email_db_id)
     try {
       await emailService.deleteEmail(email.gmail_id)
-      
-      showNotification('success', `Email from ${email.sender_name} deleted successfully!`)
+      showNotification('success', `Email from ${email.sender_name} dismissed.`)
       setEmails(prev => prev.filter(e => e.email_db_id !== email.email_db_id))
       setExpandedId(null)
     } catch (error) {
-      showNotification('error', 'Failed to delete email: ' + (error.response?.data?.message || error.message))
+      showNotification('error', 'Failed to dismiss: ' + (error.response?.data?.message || error.message))
     } finally {
       setDeletingId(null)
     }
   }
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id)
-  }
+  const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id)
+  const updateResponse = (id, value) => setManualResponses(prev => ({ ...prev, [id]: value }))
 
-  const updateManualResponse = (id, value) => {
-    setManualResponses(prev => ({ ...prev, [id]: value }))
-  }
-
+  // ── Loading state ───────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{
-        padding: '2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '60vh',
-      }}>
+      <div style={{ minHeight: '100vh', background: '#020b18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(59,130,246,0.2)',
-            borderTopColor: '#3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-          <p style={{ color: '#94a3b8', marginTop: '1rem' }}>Loading pending emails...</p>
+          <div style={{ width: 36, height: 36, border: '2px solid rgba(96,165,250,0.15)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.85rem' }}>Loading pending emails...</p>
         </div>
       </div>
     )
   }
 
+  // ── Main render ─────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      padding: '2rem',
-      maxWidth: '1200px',
-      margin: '0 auto',
-      position: 'relative',
-      minHeight: '100vh',
-      background: '#020b18',
-    }}>
-      {/* Header */}
-      <div style={{
-        marginBottom: '2rem',
-      }}>
-        <h1 style={{
-          fontSize: '2.5rem',
-          fontWeight: 700,
-          fontFamily: "'Syne', sans-serif",
-          background: 'linear-gradient(135deg, #ffffff, #60a5fa)',
-          WebkitBackgroundClip: 'text',
-          backgroundClip: 'text',
-          color: 'transparent',
-          marginBottom: '0.5rem',
-        }}>
-          Basic Emails
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-          Emails that failed to be automatically responded by the RAG system
-        </p>
-        <p style={{ color: '#475569', fontSize: '0.85rem' }}>
-          {emails.length} email{emails.length !== 1 ? 's' : ''} require manual attention
-        </p>
+    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Grid overlay */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.03, backgroundImage: 'linear-gradient(rgba(96,165,250,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.6) 1px,transparent 1px)', backgroundSize: '55px 55px' }} />
+
+      {/* Ambient center glow */}
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(29,78,216,0.08) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+
+      {/* Envelope canvas */}
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }} />
+
+      {/* Left code column */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', overflow: 'hidden', pointerEvents: 'none', zIndex: 3 }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right,#020b18 55%,transparent)', zIndex: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom,#020b18,transparent 18%,transparent 82%,#020b18)', zIndex: 1 }} />
+        <div style={{ paddingTop: '5rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', zIndex: 2 }}>
+          {LEFT_LINES.map((line, i) => (
+            <div key={i} style={{ fontFamily: 'monospace', fontSize: 11, color: `rgba(148,163,184,${Math.max(0.1, 0.32 - i * 0.018)})`, whiteSpace: 'nowrap' }}>{line}</div>
+          ))}
+        </div>
       </div>
 
-      {/* Refresh Button */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginBottom: '1.5rem',
-      }}>
-        <button
-          onClick={fetchEmails}
-          style={{
-            padding: '0.5rem 1rem',
-            background: 'rgba(59,130,246,0.1)',
-            border: '1px solid rgba(59,130,246,0.3)',
-            borderRadius: '8px',
-            color: '#60a5fa',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            fontSize: '0.85rem',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(59,130,246,0.2)'
-            e.currentTarget.style.boxShadow = '0 0 10px rgba(59,130,246,0.3)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(59,130,246,0.1)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          Refresh
-        </button>
+      {/* Right code column */}
+      <div style={{ position: 'absolute', right: 0, top: 0, width: 260, height: '100%', overflow: 'hidden', pointerEvents: 'none', zIndex: 3 }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left,#020b18 55%,transparent)', zIndex: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom,#020b18,transparent 18%,transparent 82%,#020b18)', zIndex: 1 }} />
+        <div style={{ paddingTop: '5rem', paddingRight: '1.5rem', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', position: 'relative', zIndex: 2 }}>
+          {RIGHT_LINES.map((line, i) => (
+            <div key={i} style={{ fontFamily: 'monospace', fontSize: 11, color: `rgba(148,163,184,${Math.max(0.1, 0.32 - i * 0.018)})`, whiteSpace: 'nowrap' }}>{line}</div>
+          ))}
+        </div>
       </div>
 
       {/* Notification */}
       {notification && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
-          padding: '0.75rem 1.5rem',
-          background: notification.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
-          borderRadius: '8px',
-          color: '#fff',
-          fontSize: '0.875rem',
-          backdropFilter: 'blur(8px)',
-          animation: 'slideInRight 0.3s ease',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        }}>
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000, padding: '0.65rem 1.25rem', background: notification.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)', borderRadius: 8, color: '#fff', fontSize: '0.875rem', backdropFilter: 'blur(8px)', animation: 'slideInRight 0.3s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
           {notification.message}
         </div>
       )}
 
-      {/* Email List */}
-      {emails.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '4rem',
-          background: 'rgba(15,25,45,0.6)',
-          borderRadius: '12px',
-          border: '1px solid rgba(59,130,246,0.2)',
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            fontSize: '48px',
-            marginBottom: '1rem',
-          }}>✓</div>
-          <h3 style={{ color: '#e2e8f0', marginBottom: '0.5rem' }}>All caught up!</h3>
-          <p style={{ color: '#64748b' }}>No emails are waiting for manual response.</p>
+      {/* Page content - centered wrapper */}
+      <div style={{ position: 'relative', zIndex: 10, maxWidth: 860, margin: '0 auto', padding: '3.5rem 2rem 4rem' }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '1rem' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', display: 'inline-block' }} />
+            <span style={{ fontSize: 11, color: '#60a5fa', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Manual Queue</span>
+          </div>
+          <h1 style={{ fontSize: 'clamp(2rem,5vw,2.75rem)', fontWeight: 800, color: '#fff', margin: '0 0 0.5rem', letterSpacing: '-0.03em' }}>
+            Basic Emails
+          </h1>
+          <p style={{ color: '#5a7fb5', fontSize: '0.9rem', margin: '0 0 1rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 400 }}>
+            Emails that failed RAG auto-response
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 50, height: 1, background: 'rgba(59,130,246,0.25)' }} />
+            <span style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.4)' }}>
+              {emails.length} email{emails.length !== 1 ? 's' : ''} require{emails.length === 1 ? 's' : ''} attention
+            </span>
+            <div style={{ width: 50, height: 1, background: 'rgba(59,130,246,0.25)' }} />
+          </div>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {emails.map((email) => (
-            <div
-              key={email.email_db_id}
-              style={{
-                background: 'rgba(10,20,35,0.8)',
-                border: `1px solid ${expandedId === email.email_db_id ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.15)'}`,
-                borderRadius: '12px',
-                transition: 'all 0.3s ease',
-                backdropFilter: 'blur(4px)',
-                boxShadow: expandedId === email.email_db_id ? '0 0 20px rgba(59,130,246,0.15)' : 'none',
-              }}
+
+        {/* Card container */}
+        <div style={{ background: 'rgba(10,20,36,0.85)', border: '1px solid rgba(96,165,250,0.12)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+
+          {/* Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <span style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pending responses</span>
+            <button
+              onClick={fetchEmails}
+              style={{ padding: '0.4rem 1rem', background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = 'rgba(96,165,250,0.12)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(96,165,250,0.2)'; e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; e.currentTarget.style.background = 'rgba(96,165,250,0.06)' }}
             >
-              {/* Email Header */}
-              <div
-                onClick={() => toggleExpand(email.email_db_id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '1.25rem 1.5rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(59,130,246,0.05)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontWeight: 600,
-                    color: '#e2e8f0',
-                    fontSize: '1rem',
-                    marginBottom: '0.5rem',
-                  }}>
-                    {email.subject}
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    fontSize: '0.8rem',
-                    color: '#64748b',
-                  }}>
-                    <span>From: {email.sender_name}</span>
-                    <span>{email.sender_email}</span>
-                  </div>
-                </div>
-                <div style={{
-                  fontSize: '1.5rem',
-                  color: '#64748b',
-                  transition: 'transform 0.2s ease',
-                  transform: expandedId === email.email_db_id ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}>
-                  ▼
-                </div>
-              </div>
+              ↺ Refresh Queue
+            </button>
+          </div>
 
-              {/* Expanded Content */}
-              {expandedId === email.email_db_id && (
-                <div style={{
-                  padding: '1.5rem',
-                  borderTop: '1px solid rgba(59,130,246,0.1)',
-                  animation: 'slideDown 0.3s ease',
-                  background: 'rgba(5,12,22,0.5)',
-                }}>
-                  {/* Email Body */}
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{
-                      color: '#94a3b8',
-                      fontWeight: 600,
-                      marginBottom: '0.75rem',
-                      fontSize: '0.85rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}>Email Body</h3>
-                    <div style={{
-                      padding: '1rem',
-                      background: 'rgba(2,11,24,0.6)',
-                      borderRadius: '8px',
-                      color: '#cbd5e1',
-                      lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap',
-                      fontSize: '0.9rem',
-                    }}>
-                      {email.body}
-                    </div>
-                  </div>
-
-                  {/* AI Response */}
-                  {email.rag_answer && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <h3 style={{
-                        color: '#94a3b8',
-                        fontWeight: 600,
-                        marginBottom: '0.75rem',
-                        fontSize: '0.85rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}>AI Suggested Response</h3>
-                      <div style={{
-                        padding: '1rem',
-                        background: 'rgba(167,139,250,0.08)',
-                        borderRadius: '8px',
-                        borderLeft: '3px solid #a78bfa',
-                        color: '#c4b5fd',
-                        lineHeight: 1.6,
-                        fontSize: '0.9rem',
-                      }}>
-                        {email.rag_answer}
-                        {email.failure_reason && (
-                          <div style={{
-                            marginTop: '0.75rem',
-                            paddingTop: '0.75rem',
-                            borderTop: '1px solid rgba(167,139,250,0.2)',
-                            fontSize: '0.75rem',
-                            color: '#f87171',
-                          }}>
-                            Note: {email.failure_reason}
-                          </div>
-                        )}
+          {/* Empty state */}
+          {emails.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem 2rem', border: '1px dashed rgba(96,165,250,0.15)', borderRadius: 12 }}>
+              <div style={{ fontSize: 28, color: '#60a5fa', marginBottom: '0.75rem' }}>✓</div>
+              <h3 style={{ color: '#fff', margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 600 }}>All caught up!</h3>
+              <p style={{ color: 'rgba(148,163,184,0.45)', fontSize: '0.85rem', margin: 0 }}>No emails waiting for manual response.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {emails.map(email => {
+                const isExpanded = expandedId === email.email_db_id
+                const hasResponse = !!manualResponses[email.email_db_id]?.trim()
+                return (
+                  <div
+                    key={email.email_db_id}
+                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(96,165,250,0.5)' : 'rgba(17,34,64,0.7)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s', boxShadow: isExpanded ? '0 0 20px rgba(96,165,250,0.1)' : 'none' }}
+                  >
+                    {/* Row header */}
+                    <div
+                      onClick={() => toggleExpand(email.email_db_id)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(96,165,250,0.05)' : 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
+                      onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <div style={{ flex: 1, paddingRight: '1rem' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{email.subject}</div>
+                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: 'rgba(148,163,184,0.5)' }}>
+                          <span style={{ color: 'rgba(148,163,184,0.85)' }}>{email.sender_name}</span>
+                          <span>•</span>
+                          <span>{email.sender_email}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {email.rag_answer
+                          ? <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa', padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>AI DRAFT</span>
+                          : <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>NO DRAFT</span>
+                        }
+                        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: '0.7rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Manual Response */}
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{
-                      color: '#94a3b8',
-                      fontWeight: 600,
-                      marginBottom: '0.75rem',
-                      fontSize: '0.85rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}>Your Response</h3>
-                    <textarea
-                      value={manualResponses[email.email_db_id] || ''}
-                      onChange={(e) => updateManualResponse(email.email_db_id, e.target.value)}
-                      placeholder="Write your response here..."
-                      rows={5}
-                      style={{
-                        width: '100%',
-                        padding: '1rem',
-                        background: 'rgba(2,11,24,0.6)',
-                        border: '1px solid rgba(59,130,246,0.2)',
-                        borderRadius: '8px',
-                        color: '#e2e8f0',
-                        fontSize: '0.9rem',
-                        lineHeight: 1.6,
-                        fontFamily: 'inherit',
-                        resize: 'vertical',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onFocus={e => {
-                        e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'
-                        e.currentTarget.style.boxShadow = '0 0 10px rgba(59,130,246,0.2)'
-                      }}
-                      onBlur={e => {
-                        e.currentTarget.style.borderColor = 'rgba(59,130,246,0.2)'
-                        e.currentTarget.style.boxShadow = 'none'
-                      }}
-                    />
-                  </div>
+                    {/* Expanded body */}
+                    {isExpanded && (
+                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(96,165,250,0.08)', background: 'rgba(2,8,23,0.5)', animation: 'slideDown 0.25s ease-out' }}>
 
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => handleDeleteEmail(email)}
-                      disabled={deletingId === email.email_db_id}
-                      style={{
-                        padding: '0.6rem 1.2rem',
-                        background: 'rgba(239,68,68,0.15)',
-                        border: '1px solid rgba(239,68,68,0.3)',
-                        borderRadius: '8px',
-                        color: '#f87171',
-                        cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                      }}
-                      onMouseEnter={e => {
-                        if (deletingId !== email.email_db_id) {
-                          e.currentTarget.style.background = 'rgba(239,68,68,0.25)'
-                          e.currentTarget.style.boxShadow = '0 0 12px rgba(239,68,68,0.3)'
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
-                        e.currentTarget.style.boxShadow = 'none'
-                      }}
-                    >
-                      {deletingId === email.email_db_id ? 'Deleting...' : 'Delete'}
-                    </button>
-                    <button
-                      onClick={() => handleSendResponse(email)}
-                      disabled={sendingId === email.email_db_id || !manualResponses[email.email_db_id]?.trim()}
-                      style={{
-                        padding: '0.6rem 1.5rem',
-                        background: !manualResponses[email.email_db_id]?.trim() 
-                          ? 'rgba(59,130,246,0.3)' 
-                          : 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#fff',
-                        cursor: (!manualResponses[email.email_db_id]?.trim() || sendingId === email.email_db_id) 
-                          ? 'not-allowed' 
-                          : 'pointer',
-                        transition: 'all 0.2s ease',
-                        opacity: (!manualResponses[email.email_db_id]?.trim() || sendingId === email.email_db_id) ? 0.6 : 1,
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                        boxShadow: manualResponses[email.email_db_id]?.trim() ? '0 0 12px rgba(59,130,246,0.4)' : 'none',
-                      }}
-                      onMouseEnter={e => {
-                        if (manualResponses[email.email_db_id]?.trim() && sendingId !== email.email_db_id) {
-                          e.currentTarget.style.transform = 'translateY(-1px)'
-                          e.currentTarget.style.boxShadow = '0 0 20px rgba(59,130,246,0.5)'
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'translateY(0)'
-                        if (manualResponses[email.email_db_id]?.trim()) {
-                          e.currentTarget.style.boxShadow = '0 0 12px rgba(59,130,246,0.4)'
-                        }
-                      }}
-                    >
-                      {sendingId === email.email_db_id ? 'Sending...' : 'Send Response'}
-                    </button>
+                        {/* Original message */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                          <h4 style={{ color: '#60a5fa', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Original Message</h4>
+                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(96,165,250,0.1)', borderLeft: '2px solid rgba(96,165,250,0.35)', borderRadius: 8, color: 'rgba(148,163,184,0.8)', fontSize: '0.88rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                            {email.body}
+                          </div>
+                        </div>
+
+                        {/* AI draft - failure reason removed */}
+                        {email.rag_answer && (
+                          <div style={{ marginBottom: '1.25rem' }}>
+                            <h4 style={{ color: '#a78bfa', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Draft Suggestion</h4>
+                            <div style={{ padding: '0.85rem 1rem', background: 'rgba(167,139,250,0.04)', border: '1px solid rgba(167,139,250,0.15)', borderLeft: '2px solid #a78bfa', borderRadius: 8, color: '#c4b5fd', fontSize: '0.88rem', lineHeight: 1.65 }}>
+                              {email.rag_answer}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Compose */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                          <h4 style={{ color: '#fff', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Compose Response</h4>
+                          <textarea
+                            value={manualResponses[email.email_db_id] || ''}
+                            onChange={e => updateResponse(email.email_db_id, e.target.value)}
+                            placeholder="Type your manual response..."
+                            rows={5}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 8, color: 'rgba(148,163,184,0.9)', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
+                            onFocus={e => e.currentTarget.style.borderColor = '#60a5fa'}
+                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(96,165,250,0.15)'}
+                          />
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleDeleteEmail(email)}
+                            disabled={deletingId === email.email_db_id}
+                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = '#ef4444' } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                          >
+                            {deletingId === email.email_db_id ? 'Dismissing...' : 'Dismiss'}
+                          </button>
+                          <button
+                            onClick={() => handleSendResponse(email)}
+                            disabled={sendingId === email.email_db_id || !hasResponse}
+                            style={{ padding: '0.45rem 1.25rem', background: hasResponse ? '#3b82f6' : 'rgba(59,130,246,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasResponse || sendingId === email.email_db_id) ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasResponse || sendingId === email.email_db_id) ? 0.45 : 1 }}
+                            onMouseEnter={e => { if (hasResponse && sendingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.12)' }}
+                            onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
+                          >
+                            {sendingId === email.email_db_id ? 'Sending...' : 'Dispatch ↗'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )
+              })}
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Keyframes */}
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          to   { transform: rotate(360deg); }
         }
-        
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        
         @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(100px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(40px); }
+          to   { opacity: 1; transform: translateX(0); }
         }
       `}</style>
     </div>
