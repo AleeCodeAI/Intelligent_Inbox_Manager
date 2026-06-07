@@ -11,7 +11,7 @@ from .agentic_rag_evals_schemas import (
 )
 from .receive_email_schemas import InboundEmail, InboundEmailBatch
 from .executor import EmailProcessed, ExecutorResult
-from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse
+from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse, BasicAction
 from .priority_flow_schemas import PriorityResult, CalendarEventDetails, PriorityAction
 from .nonbusiness_flow_schemas import NonBusinessResult, NonBusinessAction
 from .appointment_schemas import Appointment

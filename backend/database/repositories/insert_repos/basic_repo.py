@@ -37,7 +37,10 @@ def mark_basic_reviewed(email_db_id: str):
     try:
         db.query(BasicEmailData)\
           .filter(BasicEmailData.email_db_id == email_db_id)\
-          .update({"reviewed": True})
+          .update({
+              "reviewed": True,
+              "needs_manual_reply": False
+          })
 
         db.commit()
 
