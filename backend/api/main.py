@@ -14,6 +14,7 @@ from api.routes.retrieval_endpoints import router as retrieval_router
 from api.routes.delete_endpoint import router as delete_router
 from api.routes.executor_endpoint import router as master_pipeline_router
 from api.routes.actions_endpoints import router as action_router
+from api.routes.analysis_endpoint import router as analysis_router  
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,6 +67,7 @@ app.include_router(retrieval_router)
 app.include_router(delete_router)
 app.include_router(master_pipeline_router)
 app.include_router(action_router)
+app.include_router(analysis_router)  
 
 
 # ---------------------------------------------------------------------------

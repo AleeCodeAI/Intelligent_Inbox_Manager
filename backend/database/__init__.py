@@ -26,3 +26,8 @@ from .repositories.retrieval_repos.get_all_appointments import get_all_appointme
 
 from .repositories.delete_repos.delete_emails import delete_email
 
+# ==============================================================================
+# Retrieving the Analytical Data respository
+# ==============================================================================
+
+from .analytics.emails_analysis import EmailsAnalysis
