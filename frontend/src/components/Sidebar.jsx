@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Home, AlertCircle, Flame, Archive, BarChart2, Inbox, ChevronLeft, Menu, Mail, Send } from 'lucide-react'
+import { Calendar, PlayCircle, MailCheck } from 'lucide-react'
 
 const links = [
-  { to: '/',             label: 'Home',         icon: Home         },
-  { to: '/basic',        label: 'Basic Emails', icon: AlertCircle  },
-  { to: '/priority',     label: 'Priority',     icon: Flame        },
-  { to: '/non-business', label: 'Non-Business', icon: Archive      },
-  { to: '/analysis',     label: 'Analysis',     icon: BarChart2    },
+  { to: '/',                  label: 'Home',              icon: Home         },
+  { to: '/basic',             label: 'Basic Emails',      icon: AlertCircle  },
+  { to: '/priority',          label: 'Priority',          icon: Flame        },
+  { to: '/non-business',      label: 'Non-Business',      icon: Archive      },
+  { to: '/analysis',          label: 'Analysis',          icon: BarChart2    },
+  { to: '/appointments',      label: 'Appointments',      icon: Calendar     },
+  { to: '/executor',          label: 'Executor',          icon: PlayCircle   },
+  { to: '/emails',            label: 'Emails',            icon: Mail         },
+  { to: '/processed-emails',  label: 'Processed Emails',  icon: MailCheck    },
 ]
 
 export default function Sidebar() {

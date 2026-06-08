@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, Flame, Archive, BarChart2, Inbox, Mail, Send } from 'lucide-react'
+import { Calendar, PlayCircle } from 'lucide-react'
 
 const leftLines = [
   '{ "email_id": "msg-8f2a",',
@@ -54,6 +55,8 @@ const navButtons = [
   { to: '/priority',     icon: Flame,       label: 'Priority Emails', color: '#f87171' },
   { to: '/non-business', icon: Archive,     label: 'Non-Business',    color: '#a78bfa' },
   { to: '/analysis',     icon: BarChart2,   label: 'Analysis',        color: '#34d399' },
+  { to: '/appointments', icon: Calendar,    label: 'Appointments',    color: '#fbbf24' },
+  { to: '/executor',     icon: PlayCircle,  label: 'Others',          color: '#818cf8' },
 ]
 
 export default function Home() {
