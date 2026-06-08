@@ -5,6 +5,8 @@ from slowapi.util import get_remote_address
 import logging
 
 from database import delete_email
+from flows import DeleteAppointment
+from schemas import DeleteAppointment as DeleteAppointmentSchema
 
 router = APIRouter(prefix="/delete", tags=["Delete"])
 logger = logging.getLogger(__name__)
@@ -28,3 +30,35 @@ async def endpoint_delete_email(request: Request, gmail_id: str):
     except Exception as e:
         logger.error(f"Failed to delete email {gmail_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete email: {str(e)}")
+
+
+
+
+@router.delete("/appointment")
+@limiter.limit("30/minute")
+async def endpoint_delete_appointment(request: Request, data: DeleteAppointmentSchema):
+    """
+    Takes a DeleteAppointment payload containing gmail_id and event_id.
+    Deletes the email from the database (cascades automatically)
+    and removes the corresponding calendar event via n8n.
+    """
+    try:
+        delete_flow = DeleteAppointment()
+        delete_flow.delete_appointment(data)
+        
+        logger.info(f"Successfully deleted appointment. Gmail ID: {data.gmail_id} | Event ID: {data.event_id}")
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success", 
+                "deleted_gmail_id": data.gmail_id,
+                "deleted_event_id": data.event_id
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to execute appointment deletion sequence: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to delete appointment sequence: {str(e)}"
+        )
