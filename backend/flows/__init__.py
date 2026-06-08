@@ -4,3 +4,4 @@ from .non_business.non_business_flow import NonBusinessFlow
 from .priority.priority_action import PriorityAction
 from .non_business.non_business_action import NonBusinessAction
 from .basic.basic_flow_action import BasicFlowAction
+from .priority.delete_appointments import DeleteAppointment
