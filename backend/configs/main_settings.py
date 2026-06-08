@@ -27,6 +27,7 @@ class MainSettings(BaseSettings):
     SEND_EXAMPLE_EMAILS_N8N_URL: str
     SEND_EMAILS: str
     MARK_CALENDAR: str
+    DELETE_CALENDAR: str
 
     # ------------------- Postgressl credentials ------------------ #
     POSTGRESQL_URL: str
