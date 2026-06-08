@@ -1,10 +1,10 @@
 import requests
 from configs import MainSettings
 
-def mark_calendar(title, start, end):
-    url = MainSettings().MARK_CALENDAR  
+def delete_calendar(event_id):
+    url = MainSettings().DELETE_CALENDAR  
     
-    payload = {"title": title, "start": start, "end": end}
+    payload = {"event_id": event_id}
     
     try:
         response = requests.post(url, json=payload, timeout=50)
@@ -35,9 +35,7 @@ def mark_calendar(title, start, end):
 # Test with debug info
 if __name__ == "__main__":
     print("Testing mark_calendar...")
-    result = mark_calendar(
-        title="Test Meeting",
-        start="2026-05-28T09:00:00+05:00",
-        end="2026-05-28T18:30:00+05:00"
+    result = delete_calendar(
+        event_id="voeod45duiol48s0uuj6ohqggg"
     )
     print(result)

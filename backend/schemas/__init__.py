@@ -14,5 +14,5 @@ from .executor import EmailProcessed, ExecutorResult
 from .basic_flow_schemas import BasicLLMInput, BasicEmailResponse, BasicAction
 from .priority_flow_schemas import PriorityResult, CalendarEventDetails, PriorityAction
 from .nonbusiness_flow_schemas import NonBusinessResult, NonBusinessAction
-from .appointment_schemas import Appointment
+from .appointment_schemas import Appointment, DeleteAppointment
 from .basic_flow_evals_schemas import BasicFlowEvalJudgeInput, BasicFlowEvalJudgeOutput
