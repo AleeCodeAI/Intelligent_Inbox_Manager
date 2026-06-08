@@ -9,7 +9,7 @@ def send_to_n8n(data):
     url = MainSettings().SEND_EMAILS
     
     try:
-        response = requests.post(url, json=data, timeout=30)
+        response = requests.post(url, json=data, timeout=50)
         response.raise_for_status()
         
         try:

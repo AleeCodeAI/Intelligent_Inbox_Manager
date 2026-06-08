@@ -7,7 +7,7 @@ def mark_calendar(title, start, end):
     payload = {"title": title, "start": start, "end": end}
     
     try:
-        response = requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload, timeout=50)
         response.raise_for_status()
         
         data = response.json()
