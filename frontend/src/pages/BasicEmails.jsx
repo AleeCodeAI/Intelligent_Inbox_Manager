@@ -169,7 +169,7 @@ export default function BasicEmails() {
       <div style={{ minHeight: '100vh', background: '#020b18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: 36, height: 36, border: '2px solid rgba(96,165,250,0.15)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.85rem' }}>Loading pending emails...</p>
+          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Loading pending emails...</p>
         </div>
       </div>
     )
@@ -221,37 +221,51 @@ export default function BasicEmails() {
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 860, margin: '0 auto', padding: '3.5rem 2rem 4rem' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2.5rem', gap: '0.35rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '0.5rem' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', display: 'inline-block' }} />
-            <span style={{ fontSize: 11, color: '#60a5fa', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Manual Queue</span>
+            <span style={{ fontSize: 11, color: '#60a5fa', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Manual Queue</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(2rem,5vw,2.75rem)', fontWeight: 800, color: '#fff', margin: '0 0 0.5rem', letterSpacing: '-0.03em' }}>
+          
+          {/* Scaled and Beautifully Gradient-Themed Title */}
+          <h1 style={{
+            fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            background: 'linear-gradient(135deg, #ffffff 30%, #60a5fa 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}>
             Basic Emails
           </h1>
-          <p style={{ color: '#5a7fb5', fontSize: '0.9rem', margin: '0 0 1rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 400 }}>
+          
+          <p style={{ color: '#5a7fb5', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
             Emails that failed RAG auto-response
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 50, height: 1, background: 'rgba(59,130,246,0.25)' }} />
-            <span style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.4)' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <div style={{ width: 40, height: 1, background: 'rgba(59,130,246,0.2)' }} />
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', uppercase: true, letterSpacing: '0.05em', fontWeight: 500 }}>
               {emails.length} email{emails.length !== 1 ? 's' : ''} require{emails.length === 1 ? 's' : ''} attention
             </span>
-            <div style={{ width: 50, height: 1, background: 'rgba(59,130,246,0.25)' }} />
+            <div style={{ width: 40, height: 1, background: 'rgba(59,130,246,0.2)' }} />
           </div>
         </div>
 
         {/* Card container */}
-        <div style={{ background: 'rgba(10,20,36,0.85)', border: '1px solid rgba(96,165,250,0.12)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+        <div style={{ background: 'rgba(6,18,36,0.85)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: 'none' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pending responses</span>
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>Pending responses</span>
             <button
               onClick={fetchEmails}
-              style={{ padding: '0.4rem 1rem', background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = 'rgba(96,165,250,0.12)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(96,165,250,0.2)'; e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; e.currentTarget.style.background = 'rgba(96,165,250,0.06)' }}
+              style={{ padding: '0.4rem 1rem', background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, color: '#60a5fa', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.02em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#3b82f6' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(96,165,250,0.2)'; e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = 'rgba(96,165,250,0.06)' }}
             >
               ↺ Refresh Queue
             </button>
@@ -260,9 +274,9 @@ export default function BasicEmails() {
           {/* Empty state */}
           {emails.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 2rem', border: '1px dashed rgba(96,165,250,0.15)', borderRadius: 12 }}>
-              <div style={{ fontSize: 28, color: '#60a5fa', marginBottom: '0.75rem' }}>✓</div>
-              <h3 style={{ color: '#fff', margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 600 }}>All caught up!</h3>
-              <p style={{ color: 'rgba(148,163,184,0.45)', fontSize: '0.85rem', margin: 0 }}>No emails waiting for manual response.</p>
+              <div style={{ fontSize: 24, color: '#60a5fa', marginBottom: '0.5rem', fontWeight: 700 }}>✓</div>
+              <h3 style={{ color: '#fff', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>All caught up!</h3>
+              <p style={{ color: '#5a7fb5', fontSize: '0.8rem', margin: 0, fontWeight: 400 }}>No emails waiting for manual response.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -272,49 +286,49 @@ export default function BasicEmails() {
                 return (
                   <div
                     key={email.email_db_id}
-                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(96,165,250,0.5)' : 'rgba(17,34,64,0.7)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s', boxShadow: isExpanded ? '0 0 20px rgba(96,165,250,0.1)' : 'none' }}
+                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(96,165,250,0.4)' : 'rgba(255,255,255,0.03)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s' }}
                   >
                     {/* Row header */}
                     <div
                       onClick={() => toggleExpand(email.email_db_id)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(96,165,250,0.05)' : 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(96,165,250,0.04)' : 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.01)' }}
                       onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent' }}
                     >
                       <div style={{ flex: 1, paddingRight: '1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{email.subject}</div>
-                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: 'rgba(148,163,184,0.5)' }}>
-                          <span style={{ color: 'rgba(148,163,184,0.85)' }}>{email.sender_name}</span>
-                          <span>•</span>
-                          <span>{email.sender_email}</span>
+                        <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem', marginBottom: '0.3rem', letterSpacing: '0.01em' }}>{email.subject}</div>
+                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: '#5a7fb5', fontWeight: 500 }}>
+                          <span style={{ color: '#fff', opacity: 0.9 }}>{email.sender_name}</span>
+                          <span style={{ opacity: 0.4 }}>•</span>
+                          <span style={{ fontFamily: 'monospace', opacity: 0.8 }}>{email.sender_email}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         {email.rag_answer
-                          ? <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa', padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>AI DRAFT</span>
-                          : <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>NO DRAFT</span>
+                          ? <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa', padding: '3px 9px', borderRadius: 6, letterSpacing: '0.06em', fontWeight: 600 }}>AI DRAFT</span>
+                          : <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '3px 9px', borderRadius: 6, letterSpacing: '0.06em', fontWeight: 600 }}>NO DRAFT</span>
                         }
-                        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: '0.7rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                        <span style={{ color: '#5a7fb5', fontSize: '0.65rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.7 }}>▼</span>
                       </div>
                     </div>
 
                     {/* Expanded body */}
                     {isExpanded && (
-                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(96,165,250,0.08)', background: 'rgba(2,8,23,0.5)', animation: 'slideDown 0.25s ease-out' }}>
+                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.03)', background: 'rgba(2,8,23,0.4)', animation: 'slideDown 0.25s ease-out' }}>
 
                         {/* Original message */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#60a5fa', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Original Message</h4>
-                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(96,165,250,0.1)', borderLeft: '2px solid rgba(96,165,250,0.35)', borderRadius: 8, color: 'rgba(148,163,184,0.8)', fontSize: '0.88rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                          <h4 style={{ color: '#60a5fa', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Original Message</h4>
+                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.03)', borderLeft: '2px solid #60a5fa', borderRadius: 8, color: '#b9c7db', fontSize: '0.85rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                             {email.body}
                           </div>
                         </div>
 
-                        {/* AI draft - failure reason removed */}
+                        {/* AI draft */}
                         {email.rag_answer && (
                           <div style={{ marginBottom: '1.25rem' }}>
-                            <h4 style={{ color: '#a78bfa', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Draft Suggestion</h4>
-                            <div style={{ padding: '0.85rem 1rem', background: 'rgba(167,139,250,0.04)', border: '1px solid rgba(167,139,250,0.15)', borderLeft: '2px solid #a78bfa', borderRadius: 8, color: '#c4b5fd', fontSize: '0.88rem', lineHeight: 1.65 }}>
+                            <h4 style={{ color: '#a78bfa', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AI Draft Suggestion</h4>
+                            <div style={{ padding: '0.85rem 1rem', background: 'rgba(167,139,250,0.02)', border: '1px solid rgba(167,139,250,0.12)', borderLeft: '2px solid #a78bfa', borderRadius: 8, color: '#c4b5fd', fontSize: '0.85rem', lineHeight: 1.65 }}>
                               {email.rag_answer}
                             </div>
                           </div>
@@ -322,15 +336,15 @@ export default function BasicEmails() {
 
                         {/* Compose */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#fff', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Compose Response</h4>
+                          <h4 style={{ color: '#fff', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Compose Response</h4>
                           <textarea
                             value={manualResponses[email.email_db_id] || ''}
                             onChange={e => updateResponse(email.email_db_id, e.target.value)}
                             placeholder="Type your manual response..."
                             rows={5}
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 8, color: 'rgba(148,163,184,0.9)', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
-                            onFocus={e => e.currentTarget.style.borderColor = '#60a5fa'}
-                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(96,165,250,0.15)'}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
+                            onFocus={e => e.currentTarget.style.borderColor = 'rgba(96,165,250,0.5)'}
+                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
                           />
                         </div>
 
@@ -339,16 +353,16 @@ export default function BasicEmails() {
                           <button
                             onClick={() => handleDeleteEmail(email)}
                             disabled={deletingId === email.email_db_id}
-                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = '#ef4444' } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.color = '#f87171' }}
                           >
                             {deletingId === email.email_db_id ? 'Dismissing...' : 'Dismiss'}
                           </button>
                           <button
                             onClick={() => handleSendResponse(email)}
                             disabled={sendingId === email.email_db_id || !hasResponse}
-                            style={{ padding: '0.45rem 1.25rem', background: hasResponse ? '#3b82f6' : 'rgba(59,130,246,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasResponse || sendingId === email.email_db_id) ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasResponse || sendingId === email.email_db_id) ? 0.45 : 1 }}
+                            style={{ padding: '0.45rem 1.25rem', background: hasResponse ? '#3b82f6' : 'rgba(59,130,246,0.12)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasResponse || sendingId === email.email_db_id) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasResponse || sendingId === email.email_db_id) ? 0.4 : 1 }}
                             onMouseEnter={e => { if (hasResponse && sendingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.12)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >

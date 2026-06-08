@@ -8,6 +8,7 @@ const apiEndpoints = {
   getNonBusinessUnreviewed: `${API_BASE_URL}/retrieval/nonbusiness/unreviewed`,
   postNonBusinessAction: `${API_BASE_URL}/actions/nonbusiness-action`,
   deleteEmail: (gmailId) => `${API_BASE_URL}/delete/email/${gmailId}`,
+  getDashboardAnalysis: `${API_BASE_URL}/analysis/get-analysis`,
 }
 
 export default apiEndpoints

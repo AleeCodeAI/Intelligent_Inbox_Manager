@@ -296,25 +296,39 @@ export default function PriorityEmails() {
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 860, margin: '0 auto', padding: '3.5rem 2rem 4rem' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '1rem' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
-            <span style={{ fontSize: 11, color: '#a78bfa', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Priority Queue</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(2rem,5vw,2.75rem)', fontWeight: 800, color: '#fff', margin: '0 0 0.5rem', letterSpacing: '-0.03em' }}>
-            Priority Emails
-          </h1>
-          <p style={{ color: '#5a7fb5', fontSize: '0.9rem', margin: '0 0 1rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 400 }}>
-            High-confidence emails requiring executive review
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 50, height: 1, background: 'rgba(139,92,246,0.25)' }} />
-            <span style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.4)' }}>
-              {emails.length} priority email{emails.length !== 1 ? 's' : ''} awaiting action
-            </span>
-            <div style={{ width: 50, height: 1, background: 'rgba(139,92,246,0.25)' }} />
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2.5rem', gap: '0.35rem' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '0.5rem' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
+          <span style={{ fontSize: 11, color: '#a78bfa', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Priority Queue</span>
         </div>
+        
+        {/* Slate-Steel Metallic Gradient Title Header */}
+        <h1 style={{
+          fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          background: 'linear-gradient(135deg, #ffffff 30%, #c4b5fd 75%, #a78bfa 100%)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          color: 'transparent',
+          textTransform: 'uppercase',
+          margin: 0,
+        }}>
+          Priority Emails
+        </h1>
+        
+        <p style={{ color: '#a78bfa', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
+          High-confidence emails requiring executive review
+        </p>
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+          <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
+          <span style={{ fontSize: '0.72rem', color: '#a78bfa', letterSpacing: '0.05em', fontWeight: 500 }}>
+            {emails.length} priority email{emails.length !== 1 ? 's' : ''} awaiting action
+          </span>
+          <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
+        </div>
+      </div>
 
         {/* Card container */}
         <div style={{ background: 'rgba(10,20,36,0.85)', border: '1px solid rgba(139,92,246,0.12)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>

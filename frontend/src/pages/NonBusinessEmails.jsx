@@ -154,7 +154,6 @@ export default function NonBusinessEmails() {
   const handleNonBusinessAction = async (email) => {
     setProcessingId(email.email_db_id)
     try {
-      // Validate manual response
       if (!adminActions[email.email_db_id]?.trim()) {
         showNotification('error', 'Please enter a response message')
         setProcessingId(null)
@@ -168,15 +167,10 @@ export default function NonBusinessEmails() {
         nonbusiness_type: email.nonbusiness_type
       }
       
-      console.log('Sending payload to backend:', JSON.stringify(payload, null, 2))
       const response = await emailService.takeNonBusinessAction(payload)
-      console.log('Backend response:', response)
-      
       showNotification('success', `Action completed for ${email.sender_name}!`)
       setTimeout(() => fetchEmails(), 1000)
     } catch (error) {
-      console.error('Full error:', error)
-      console.error('Error response data:', error.response?.data)
       const errorMessage = error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message
       showNotification('error', `Failed to process: ${errorMessage}`)
     } finally {
@@ -208,7 +202,7 @@ export default function NonBusinessEmails() {
       <div style={{ minHeight: '100vh', background: '#020b18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: 36, height: 36, border: '2px solid rgba(107,114,128,0.15)', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.85rem' }}>Loading non-business emails...</p>
+          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Loading non-business emails...</p>
         </div>
       </div>
     )
@@ -221,7 +215,7 @@ export default function NonBusinessEmails() {
       {/* Grid overlay */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.03, backgroundImage: 'linear-gradient(rgba(107,114,128,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(107,114,128,0.6) 1px,transparent 1px)', backgroundSize: '55px 55px' }} />
 
-      {/* Ambient center glow - gray for non-business */}
+      {/* Ambient center glow */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(107,114,128,0.08) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
 
       {/* Envelope canvas */}
@@ -260,37 +254,51 @@ export default function NonBusinessEmails() {
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 860, margin: '0 auto', padding: '3.5rem 2rem 4rem' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(107,114,128,0.08)', border: '1px solid rgba(107,114,128,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2.5rem', gap: '0.35rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(107,114,128,0.08)', border: '1px solid rgba(107,114,128,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '0.5rem' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
-            <span style={{ fontSize: 11, color: '#6b7280', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Non-Business Queue</span>
+            <span style={{ fontSize: 11, color: '#6b7280', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Non-Business Queue</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(2rem,5vw,2.75rem)', fontWeight: 800, color: '#fff', margin: '0 0 0.5rem', letterSpacing: '-0.03em' }}>
+          
+          {/* Slate-Steel Metallic Gradient Title Header */}
+          <h1 style={{
+            fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            background: 'linear-gradient(135deg, #ffffff 30%, #9ca3af 75%, #6b7280 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}>
             Non-Business Emails
           </h1>
-          <p style={{ color: '#5a7fb5', fontSize: '0.9rem', margin: '0 0 1rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 400 }}>
+          
+          <p style={{ color: '#5a7fb5', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
             Personal, promotional, and other non-business communications
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 50, height: 1, background: 'rgba(107,114,128,0.25)' }} />
-            <span style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.4)' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <div style={{ width: 40, height: 1, background: 'rgba(107,114,128,0.2)' }} />
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', letterSpacing: '0.05em', fontWeight: 500 }}>
               {emails.length} non-business email{emails.length !== 1 ? 's' : ''} awaiting action
             </span>
-            <div style={{ width: 50, height: 1, background: 'rgba(107,114,128,0.25)' }} />
+            <div style={{ width: 40, height: 1, background: 'rgba(107,114,128,0.2)' }} />
           </div>
         </div>
 
         {/* Card container */}
-        <div style={{ background: 'rgba(10,20,36,0.85)', border: '1px solid rgba(107,114,128,0.12)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+        <div style={{ background: 'rgba(6,18,36,0.85)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: 'none' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pending actions</span>
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>Pending actions</span>
             <button
               onClick={fetchEmails}
-              style={{ padding: '0.4rem 1rem', background: 'rgba(107,114,128,0.06)', border: '1px solid rgba(107,114,128,0.2)', borderRadius: 8, color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b7280'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.background = 'rgba(107,114,128,0.12)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(107,114,128,0.2)'; e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; e.currentTarget.style.background = 'rgba(107,114,128,0.06)' }}
+              style={{ padding: '0.4rem 1rem', background: 'rgba(107,114,128,0.06)', border: '1px solid rgba(107,114,128,0.2)', borderRadius: 8, color: '#9ca3af', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.02em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9ca3af'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#4b5563' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(107,114,128,0.2)'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'rgba(107,114,128,0.06)' }}
             >
               ↺ Refresh Queue
             </button>
@@ -299,67 +307,77 @@ export default function NonBusinessEmails() {
           {/* Empty state */}
           {emails.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 2rem', border: '1px dashed rgba(107,114,128,0.15)', borderRadius: 12 }}>
-              <div style={{ fontSize: 28, color: '#6b7280', marginBottom: '0.75rem' }}>✓</div>
-              <h3 style={{ color: '#fff', margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 600 }}>No non-business emails!</h3>
-              <p style={{ color: 'rgba(148,163,184,0.45)', fontSize: '0.85rem', margin: 0 }}>All non-business messages have been reviewed.</p>
+              <div style={{ fontSize: 24, color: '#6b7280', marginBottom: '0.5rem', fontWeight: 700 }}>✓</div>
+              <h3 style={{ color: '#fff', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>No non-business emails!</h3>
+              <p style={{ color: '#5a7fb5', fontSize: '0.8rem', margin: 0, fontWeight: 400 }}>All non-business messages have been reviewed.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {emails.map(email => {
                 const isExpanded = expandedId === email.email_db_id
                 const hasAction = !!adminActions[email.email_db_id]?.trim()
+                const badgeColor = getNonBusinessColor(email.nonbusiness_type)
                 
                 return (
                   <div
                     key={email.email_db_id}
-                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(107,114,128,0.5)' : 'rgba(17,34,64,0.7)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s', boxShadow: isExpanded ? '0 0 20px rgba(107,114,128,0.1)' : 'none' }}
+                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(107,114,128,0.4)' : 'rgba(255,255,255,0.03)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s' }}
                   >
                     {/* Row header */}
                     <div
                       onClick={() => toggleExpand(email.email_db_id)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(107,114,128,0.05)' : 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(107,114,128,0.04)' : 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.01)' }}
                       onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent' }}
                     >
                       <div style={{ flex: 1, paddingRight: '1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{email.subject}</div>
-                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: 'rgba(148,163,184,0.5)' }}>
-                          <span style={{ color: 'rgba(148,163,184,0.85)' }}>{email.sender_name}</span>
-                          <span>•</span>
-                          <span>{email.sender_email}</span>
+                        <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem', marginBottom: '0.3rem', letterSpacing: '0.01em' }}>{email.subject}</div>
+                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: '#5a7fb5', fontWeight: 500 }}>
+                          <span style={{ color: '#fff', opacity: 0.9 }}>{email.sender_name}</span>
+                          <span style={{ opacity: 0.4 }}>•</span>
+                          <span style={{ fontFamily: 'monospace', opacity: 0.8 }}>{email.sender_email}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontSize: 10, background: `rgba(${parseInt(getNonBusinessColor(email.nonbusiness_type).slice(1,3), 16)}, ${parseInt(getNonBusinessColor(email.nonbusiness_type).slice(3,5), 16)}, ${parseInt(getNonBusinessColor(email.nonbusiness_type).slice(5,7), 16)}, 0.1)`, border: `1px solid ${getNonBusinessColor(email.nonbusiness_type)}40`, color: getNonBusinessColor(email.nonbusiness_type), padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>
+                        <span style={{ 
+                          fontSize: 10, 
+                          background: `${badgeColor}12`, 
+                          border: `1px solid ${badgeColor}33`, 
+                          color: badgeColor, 
+                          padding: '3px 9px', 
+                          borderRadius: 6, 
+                          letterSpacing: '0.06em', 
+                          fontWeight: 600 
+                        }}>
                           {getNonBusinessLabel(email.nonbusiness_type)} • {(email.confidence * 100).toFixed(0)}%
                         </span>
-                        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: '0.7rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                        <span style={{ color: '#5a7fb5', fontSize: '0.65rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.7 }}>▼</span>
                       </div>
                     </div>
 
                     {/* Expanded body */}
                     {isExpanded && (
-                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(107,114,128,0.08)', background: 'rgba(2,8,23,0.5)', animation: 'slideDown 0.25s ease-out' }}>
+                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.03)', background: 'rgba(2,8,23,0.4)', animation: 'slideDown 0.25s ease-out' }}>
 
                         {/* Original message */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#6b7280', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Original Message</h4>
-                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(107,114,128,0.1)', borderLeft: '2px solid rgba(107,114,128,0.35)', borderRadius: 8, color: 'rgba(148,163,184,0.8)', fontSize: '0.88rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                          <h4 style={{ color: '#6b7280', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Original Message</h4>
+                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.03)', borderLeft: `2px solid ${badgeColor}`, borderRadius: 8, color: '#b9c7db', fontSize: '0.85rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                             {email.body}
                           </div>
                         </div>
 
-                        {/* Response */}
+                        {/* Response input */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#fff', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Response Message *</h4>
+                          <h4 style={{ color: '#fff', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Response Message *</h4>
                           <textarea
                             value={adminActions[email.email_db_id] || ''}
                             onChange={e => updateAction(email.email_db_id, e.target.value)}
                             placeholder="Enter your response for this non-business email..."
                             rows={5}
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(107,114,128,0.15)', borderRadius: 8, color: 'rgba(148,163,184,0.9)', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
-                            onFocus={e => e.currentTarget.style.borderColor = '#6b7280'}
-                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(107,114,128,0.15)'}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
+                            onFocus={e => e.currentTarget.style.borderColor = 'rgba(107,114,128,0.5)'}
+                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
                           />
                         </div>
 
@@ -368,17 +386,17 @@ export default function NonBusinessEmails() {
                           <button
                             onClick={() => handleDeleteEmail(email)}
                             disabled={deletingId === email.email_db_id}
-                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = '#ef4444' } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.color = '#f87171' }}
                           >
                             {deletingId === email.email_db_id ? 'Deleting...' : 'Delete'}
                           </button>
                           <button
                             onClick={() => handleNonBusinessAction(email)}
                             disabled={processingId === email.email_db_id || !hasAction}
-                            style={{ padding: '0.45rem 1.25rem', background: hasAction ? '#6b7280' : 'rgba(107,114,128,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id) ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id) ? 0.45 : 1 }}
-                            onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.12)' }}
+                            style={{ padding: '0.45rem 1.25rem', background: hasAction ? '#4b5563' : 'rgba(107,114,128,0.12)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id) ? 0.4 : 1 }}
+                            onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.15)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >
                             {processingId === email.email_db_id ? 'Processing...' : 'Send Response ↗'}

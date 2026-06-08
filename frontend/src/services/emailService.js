@@ -1,3 +1,4 @@
+// services/emailService.js
 import axios from 'axios'
 import apiEndpoints from '../config/api'
 
@@ -54,6 +55,22 @@ const emailService = {
   deleteEmail: async (gmailId) => {
     console.log('Deleting via API:', apiEndpoints.deleteEmail(gmailId))
     const response = await axios.delete(apiEndpoints.deleteEmail(gmailId))
+    return response.data
+  },
+
+  // analysis method 
+  getAnalysisData: async () => {
+    console.log('Calling API:', apiEndpoints.getAnalysis)
+    const response = await axios.post(apiEndpoints.getAnalysis)
+    console.log('Analysis Response:', response.data)
+    return response.data
+  },
+
+  // Fetch metrics data block via POST
+  getDashboardAnalysis: async () => {
+    console.log('Calling API:', apiEndpoints.getDashboardAnalysis)
+    const response = await axios.post(apiEndpoints.getDashboardAnalysis)
+    console.log('API Response:', response.data)
     return response.data
   }
 }
