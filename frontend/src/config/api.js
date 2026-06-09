@@ -9,6 +9,8 @@ const apiEndpoints = {
   postNonBusinessAction: `${API_BASE_URL}/actions/nonbusiness-action`,
   deleteEmail: (gmailId) => `${API_BASE_URL}/delete/email/${gmailId}`,
   getDashboardAnalysis: `${API_BASE_URL}/analysis/get-analysis`,
+  getAppointments: `${API_BASE_URL}/retrieval/appointments`,
+  deleteAppointment: `${API_BASE_URL}/delete/appointment`,
 }
 
 export default apiEndpoints
