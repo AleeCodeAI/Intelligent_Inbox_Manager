@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import emailService from '../services/emailService'
 
 const LEFT_LINES = [
@@ -42,66 +42,6 @@ export default function BasicEmails() {
   const [notification, setNotification] = useState(null)
   const [sendingId, setSendingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
-
-  // ── Envelope canvas animation (from Home) ──────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    let envelopes = []
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      envelopes = Array.from({ length: 18 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        sx: (Math.random() - 0.5) * 0.45,
-        sy: (Math.random() - 0.5) * 0.35 + 0.08,
-        size: 10 + Math.random() * 12,
-        op: 0.04 + Math.random() * 0.05,
-      }))
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const drawEnvelope = (x, y, s, op) => {
-      ctx.save()
-      ctx.globalAlpha = op
-      ctx.strokeStyle = '#60a5fa'
-      ctx.fillStyle = '#60a5fa'
-      ctx.lineWidth = 1.1
-      ctx.strokeRect(x - s / 2, y - s / 2, s, s * 0.7)
-      ctx.beginPath()
-      ctx.moveTo(x - s / 2, y - s / 2)
-      ctx.lineTo(x, y - s / 2 + s * 0.33)
-      ctx.lineTo(x + s / 2, y - s / 2)
-      ctx.stroke()
-      ctx.restore()
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      envelopes.forEach(e => {
-        e.x += e.sx
-        e.y += e.sy
-        if (e.x < -40) e.x = canvas.width + 40
-        if (e.x > canvas.width + 40) e.x = -40
-        if (e.y < -40) e.y = canvas.height + 40
-        if (e.y > canvas.height + 40) e.y = -40
-        drawEnvelope(e.x, e.y, e.size, e.op)
-      })
-      animRef.current = requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animRef.current)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   useEffect(() => { fetchEmails() }, [])
@@ -136,7 +76,7 @@ export default function BasicEmails() {
         email.sender_name,
         manualResponses[email.email_db_id]
       )
-      showNotification('success', `Response dispatched to ${email.sender_name}!`)
+      showNotification('success', `Response sent to ${email.sender_name}!`)
       setTimeout(() => fetchEmails(), 1000)
     } catch (error) {
       showNotification('error', 'Failed to send: ' + (error.response?.data?.message || error.message))
@@ -146,15 +86,15 @@ export default function BasicEmails() {
   }
 
   const handleDeleteEmail = async (email) => {
-    if (!window.confirm(`Dismiss email from ${email.sender_name}?`)) return
+    if (!window.confirm(`Delete email from ${email.sender_name}?`)) return
     setDeletingId(email.email_db_id)
     try {
       await emailService.deleteEmail(email.gmail_id)
-      showNotification('success', `Email from ${email.sender_name} dismissed.`)
+      showNotification('success', `Email from ${email.sender_name} deleted.`)
       setEmails(prev => prev.filter(e => e.email_db_id !== email.email_db_id))
       setExpandedId(null)
     } catch (error) {
-      showNotification('error', 'Failed to dismiss: ' + (error.response?.data?.message || error.message))
+      showNotification('error', 'Failed to delete: ' + (error.response?.data?.message || error.message))
     } finally {
       setDeletingId(null)
     }
@@ -177,16 +117,13 @@ export default function BasicEmails() {
 
   // ── Main render ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', fontFamily: "'Inter', sans-serif" }}>
 
       {/* Grid overlay */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.03, backgroundImage: 'linear-gradient(rgba(96,165,250,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.6) 1px,transparent 1px)', backgroundSize: '55px 55px' }} />
 
       {/* Ambient center glow */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(29,78,216,0.08) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-
-      {/* Envelope canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }} />
 
       {/* Left code column */}
       <div style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', overflow: 'hidden', pointerEvents: 'none', zIndex: 3 }}>
@@ -227,7 +164,6 @@ export default function BasicEmails() {
             <span style={{ fontSize: 11, color: '#60a5fa', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Manual Queue</span>
           </div>
           
-          {/* Scaled and Beautifully Gradient-Themed Title */}
           <h1 style={{
             fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
             fontWeight: 700,
@@ -248,7 +184,7 @@ export default function BasicEmails() {
           
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
             <div style={{ width: 40, height: 1, background: 'rgba(59,130,246,0.2)' }} />
-            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', uppercase: true, letterSpacing: '0.05em', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', letterSpacing: '0.05em', fontWeight: 500 }}>
               {emails.length} email{emails.length !== 1 ? 's' : ''} require{emails.length === 1 ? 's' : ''} attention
             </span>
             <div style={{ width: 40, height: 1, background: 'rgba(59,130,246,0.2)' }} />
@@ -256,7 +192,7 @@ export default function BasicEmails() {
         </div>
 
         {/* Card container */}
-        <div style={{ background: 'rgba(6,18,36,0.85)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: 'none' }}>
+        <div style={{ background: 'rgba(6,18,36,0.85)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -348,7 +284,7 @@ export default function BasicEmails() {
                           />
                         </div>
 
-                        {/* Actions */}
+                        {/* Actions - Consistent button labels */}
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => handleDeleteEmail(email)}
@@ -357,7 +293,7 @@ export default function BasicEmails() {
                             onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' } }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.color = '#f87171' }}
                           >
-                            {deletingId === email.email_db_id ? 'Dismissing...' : 'Dismiss'}
+                            {deletingId === email.email_db_id ? 'Deleting...' : 'Delete'}
                           </button>
                           <button
                             onClick={() => handleSendResponse(email)}
@@ -366,7 +302,7 @@ export default function BasicEmails() {
                             onMouseEnter={e => { if (hasResponse && sendingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.12)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >
-                            {sendingId === email.email_db_id ? 'Sending...' : 'Dispatch ↗'}
+                            {sendingId === email.email_db_id ? 'Sending...' : 'Send'}
                           </button>
                         </div>
                       </div>

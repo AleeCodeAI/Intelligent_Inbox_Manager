@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import emailService from '../services/emailService'
 
 const LEFT_LINES = [
@@ -43,8 +43,6 @@ export default function PriorityEmails() {
   const [notification, setNotification] = useState(null)
   const [processingId, setProcessingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
 
   // Priority type color mapping
   const getPriorityColor = (type) => {
@@ -59,71 +57,13 @@ export default function PriorityEmails() {
 
   const getPriorityLabel = (type) => {
     switch(type) {
-      case 'SENSITIVE': return '🔒 Sensitive'
-      case 'HIGH_VALUE': return '⭐ High Value'
-      case 'CLIENT_COMMUNICATION': return '🤝 Client Communication'
-      case 'APPOINTMENT': return '📅 Appointment'
+      case 'SENSITIVE': return 'Sensitive'
+      case 'HIGH_VALUE': return 'High Value'
+      case 'CLIENT_COMMUNICATION': return 'Client Communication'
+      case 'APPOINTMENT': return 'Appointment'
       default: return type
     }
   }
-
-  // ── Envelope canvas animation ──────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    let envelopes = []
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      envelopes = Array.from({ length: 18 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        sx: (Math.random() - 0.5) * 0.45,
-        sy: (Math.random() - 0.5) * 0.35 + 0.08,
-        size: 10 + Math.random() * 12,
-        op: 0.04 + Math.random() * 0.05,
-      }))
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const drawEnvelope = (x, y, s, op) => {
-      ctx.save()
-      ctx.globalAlpha = op
-      ctx.strokeStyle = '#a78bfa'
-      ctx.fillStyle = '#a78bfa'
-      ctx.lineWidth = 1.1
-      ctx.strokeRect(x - s / 2, y - s / 2, s, s * 0.7)
-      ctx.beginPath()
-      ctx.moveTo(x - s / 2, y - s / 2)
-      ctx.lineTo(x, y - s / 2 + s * 0.33)
-      ctx.lineTo(x + s / 2, y - s / 2)
-      ctx.stroke()
-      ctx.restore()
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      envelopes.forEach(e => {
-        e.x += e.sx
-        e.y += e.sy
-        if (e.x < -40) e.x = canvas.width + 40
-        if (e.x > canvas.width + 40) e.x = -40
-        if (e.y < -40) e.y = canvas.height + 40
-        if (e.y > canvas.height + 40) e.y = -40
-        drawEnvelope(e.x, e.y, e.size, e.op)
-      })
-      animRef.current = requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animRef.current)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
 
   // ── Data fetching ───────────────────────────────────────────────
   useEffect(() => { fetchEmails() }, [])
@@ -162,7 +102,6 @@ export default function PriorityEmails() {
   const handlePriorityAction = async (email) => {
     setProcessingId(email.email_db_id)
     try {
-      // Validate for APPOINTMENT type
       if (email.priority_type === 'APPOINTMENT') {
         const calendar = calendarDetails[email.email_db_id]
         if (!calendar.start || !calendar.end) {
@@ -172,14 +111,12 @@ export default function PriorityEmails() {
         }
       }
 
-      // Validate manual response
       if (!adminActions[email.email_db_id]?.trim()) {
         showNotification('error', 'Please enter a response message')
         setProcessingId(null)
         return
       }
 
-      // Build payload with calendar_details defaulting to null
       const payload = {
         gmail_id: email.gmail_id,
         sender_name: email.sender_name,
@@ -188,7 +125,6 @@ export default function PriorityEmails() {
         calendar_details: null
       }
       
-      // Only add calendar_details object for APPOINTMENT type
       if (email.priority_type === 'APPOINTMENT') {
         const calendar = calendarDetails[email.email_db_id]
         payload.calendar_details = {
@@ -198,15 +134,10 @@ export default function PriorityEmails() {
         }
       }
       
-      console.log('Sending payload to backend:', JSON.stringify(payload, null, 2))
-      const response = await emailService.takePriorityAction(payload)
-      console.log('Backend response:', response)
-      
-      showNotification('success', `Action completed for ${email.sender_name}!`)
+      await emailService.takePriorityAction(payload)
+      showNotification('success', `Response sent to ${email.sender_name}!`)
       setTimeout(() => fetchEmails(), 1000)
     } catch (error) {
-      console.error('Full error:', error)
-      console.error('Error response data:', error.response?.data)
       const errorMessage = error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message
       showNotification('error', `Failed to process: ${errorMessage}`)
     } finally {
@@ -244,7 +175,7 @@ export default function PriorityEmails() {
       <div style={{ minHeight: '100vh', background: '#020b18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: 36, height: 36, border: '2px solid rgba(167,139,250,0.15)', borderTopColor: '#a78bfa', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.85rem' }}>Loading priority emails...</p>
+          <p style={{ color: 'rgba(148,163,184,0.5)', marginTop: '1rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Loading priority emails...</p>
         </div>
       </div>
     )
@@ -252,16 +183,13 @@ export default function PriorityEmails() {
 
   // ── Main render ─────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', fontFamily: "'Inter', sans-serif" }}>
 
       {/* Grid overlay */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.03, backgroundImage: 'linear-gradient(rgba(167,139,250,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(167,139,250,0.6) 1px,transparent 1px)', backgroundSize: '55px 55px' }} />
 
-      {/* Ambient center glow - purple for priority */}
+      {/* Ambient center glow */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-
-      {/* Envelope canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }} />
 
       {/* Left code column */}
       <div style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', overflow: 'hidden', pointerEvents: 'none', zIndex: 3 }}>
@@ -296,51 +224,50 @@ export default function PriorityEmails() {
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 860, margin: '0 auto', padding: '3.5rem 2rem 4rem' }}>
 
         {/* Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2.5rem', gap: '0.35rem' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '0.5rem' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
-          <span style={{ fontSize: 11, color: '#a78bfa', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Priority Queue</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2.5rem', gap: '0.35rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 20, padding: '4px 14px', marginBottom: '0.5rem' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
+            <span style={{ fontSize: 11, color: '#a78bfa', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Priority Queue</span>
+          </div>
+          
+          <h1 style={{
+            fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            background: 'linear-gradient(135deg, #ffffff 30%, #c4b5fd 75%, #a78bfa 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            textTransform: 'uppercase',
+            margin: 0,
+          }}>
+            Priority Emails
+          </h1>
+          
+          <p style={{ color: '#a78bfa', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
+            High-confidence emails requiring executive review
+          </p>
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
+            <span style={{ fontSize: '0.72rem', color: '#a78bfa', letterSpacing: '0.05em', fontWeight: 500 }}>
+              {emails.length} priority email{emails.length !== 1 ? 's' : ''} awaiting action
+            </span>
+            <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
+          </div>
         </div>
-        
-        {/* Slate-Steel Metallic Gradient Title Header */}
-        <h1 style={{
-          fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
-          fontWeight: 700,
-          letterSpacing: '-0.01em',
-          background: 'linear-gradient(135deg, #ffffff 30%, #c4b5fd 75%, #a78bfa 100%)',
-          WebkitBackgroundClip: 'text',
-          backgroundClip: 'text',
-          color: 'transparent',
-          textTransform: 'uppercase',
-          margin: 0,
-        }}>
-          Priority Emails
-        </h1>
-        
-        <p style={{ color: '#a78bfa', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
-          High-confidence emails requiring executive review
-        </p>
-        
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
-          <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
-          <span style={{ fontSize: '0.72rem', color: '#a78bfa', letterSpacing: '0.05em', fontWeight: 500 }}>
-            {emails.length} priority email{emails.length !== 1 ? 's' : ''} awaiting action
-          </span>
-          <div style={{ width: 40, height: 1, background: 'rgba(139,92,246,0.2)' }} />
-        </div>
-      </div>
 
         {/* Card container */}
-        <div style={{ background: 'rgba(10,20,36,0.85)', border: '1px solid rgba(139,92,246,0.12)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+        <div style={{ background: 'rgba(6,18,36,0.85)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, padding: '1.75rem 1.5rem', backdropFilter: 'blur(12px)' }}>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pending executive actions</span>
+            <span style={{ fontSize: '0.72rem', color: '#5a7fb5', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>Pending executive actions</span>
             <button
               onClick={fetchEmails}
-              style={{ padding: '0.4rem 1rem', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a78bfa'; e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(139,92,246,0.12)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'; e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; e.currentTarget.style.background = 'rgba(139,92,246,0.06)' }}
+              style={{ padding: '0.4rem 1rem', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, color: '#a78bfa', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.02em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a78bfa'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#7c3aed' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'; e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(139,92,246,0.06)' }}
             >
               ↺ Refresh Queue
             </button>
@@ -349,9 +276,9 @@ export default function PriorityEmails() {
           {/* Empty state */}
           {emails.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 2rem', border: '1px dashed rgba(139,92,246,0.15)', borderRadius: 12 }}>
-              <div style={{ fontSize: 28, color: '#a78bfa', marginBottom: '0.75rem' }}>✓</div>
-              <h3 style={{ color: '#fff', margin: '0 0 0.35rem', fontSize: '1.1rem', fontWeight: 600 }}>No priority emails!</h3>
-              <p style={{ color: 'rgba(148,163,184,0.45)', fontSize: '0.85rem', margin: 0 }}>All high-priority messages have been reviewed.</p>
+              <div style={{ fontSize: 24, color: '#a78bfa', marginBottom: '0.5rem', fontWeight: 700 }}>✓</div>
+              <h3 style={{ color: '#fff', margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>No priority emails!</h3>
+              <p style={{ color: '#5a7fb5', fontSize: '0.8rem', margin: 0, fontWeight: 400 }}>All high-priority messages have been reviewed.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -365,39 +292,48 @@ export default function PriorityEmails() {
                 return (
                   <div
                     key={email.email_db_id}
-                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(139,92,246,0.5)' : 'rgba(17,34,64,0.7)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s', boxShadow: isExpanded ? '0 0 20px rgba(139,92,246,0.1)' : 'none' }}
+                    style={{ background: '#0a1424', border: `1px solid ${isExpanded ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.03)'}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.25s' }}
                   >
                     {/* Row header */}
                     <div
                       onClick={() => toggleExpand(email.email_db_id)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(139,92,246,0.05)' : 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', background: isExpanded ? 'rgba(139,92,246,0.04)' : 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.01)' }}
                       onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent' }}
                     >
                       <div style={{ flex: 1, paddingRight: '1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{email.subject}</div>
-                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: 'rgba(148,163,184,0.5)' }}>
-                          <span style={{ color: 'rgba(148,163,184,0.85)' }}>{email.sender_name}</span>
-                          <span>•</span>
-                          <span>{email.sender_email}</span>
+                        <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem', marginBottom: '0.3rem', letterSpacing: '0.01em' }}>{email.subject}</div>
+                        <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.78rem', color: '#5a7fb5', fontWeight: 500 }}>
+                          <span style={{ color: '#fff', opacity: 0.9 }}>{email.sender_name}</span>
+                          <span style={{ opacity: 0.4 }}>•</span>
+                          <span style={{ fontFamily: 'monospace', opacity: 0.8 }}>{email.sender_email}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontSize: 10, background: `rgba(${parseInt(getPriorityColor(email.priority_type).slice(1,3), 16)}, ${parseInt(getPriorityColor(email.priority_type).slice(3,5), 16)}, ${parseInt(getPriorityColor(email.priority_type).slice(5,7), 16)}, 0.1)`, border: `1px solid ${getPriorityColor(email.priority_type)}40`, color: getPriorityColor(email.priority_type), padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', fontWeight: 500 }}>
+                        <span style={{ 
+                          fontSize: 10, 
+                          background: `${getPriorityColor(email.priority_type)}12`, 
+                          border: `1px solid ${getPriorityColor(email.priority_type)}33`, 
+                          color: getPriorityColor(email.priority_type), 
+                          padding: '3px 9px', 
+                          borderRadius: 6, 
+                          letterSpacing: '0.06em', 
+                          fontWeight: 600 
+                        }}>
                           {getPriorityLabel(email.priority_type)} • {(email.confidence * 100).toFixed(0)}%
                         </span>
-                        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: '0.7rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                        <span style={{ color: '#5a7fb5', fontSize: '0.65rem', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.7 }}>▼</span>
                       </div>
                     </div>
 
                     {/* Expanded body */}
                     {isExpanded && (
-                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(139,92,246,0.08)', background: 'rgba(2,8,23,0.5)', animation: 'slideDown 0.25s ease-out' }}>
+                      <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.03)', background: 'rgba(2,8,23,0.4)', animation: 'slideDown 0.25s ease-out' }}>
 
                         {/* Original message */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#a78bfa', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Original Message</h4>
-                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.1)', borderLeft: '2px solid rgba(139,92,246,0.35)', borderRadius: 8, color: 'rgba(148,163,184,0.8)', fontSize: '0.88rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                          <h4 style={{ color: '#a78bfa', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Original Message</h4>
+                          <div style={{ padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.03)', borderLeft: `2px solid ${getPriorityColor(email.priority_type)}`, borderRadius: 8, color: '#b9c7db', fontSize: '0.85rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                             {email.body}
                           </div>
                         </div>
@@ -405,36 +341,36 @@ export default function PriorityEmails() {
                         {/* Calendar picker for APPOINTMENT type */}
                         {isAppointment && (
                           <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8 }}>
-                            <h4 style={{ color: '#a78bfa', fontWeight: 600, margin: '0 0 0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>📅 Calendar Event Details (Required)</h4>
+                            <h4 style={{ color: '#a78bfa', fontWeight: 700, margin: '0 0 0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Calendar Event Details</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                               <input
                                 type="text"
                                 value={calendar.title}
                                 onChange={e => updateCalendar(email.email_db_id, 'title', e.target.value)}
-                                placeholder="Event title (optional - defaults to 'Meeting with [sender]')"
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: 'rgba(148,163,184,0.9)', fontSize: '0.85rem', outline: 'none' }}
+                                placeholder="Event title (optional)"
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
                                 onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
                                 onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
                               />
                               <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.5)', display: 'block', marginBottom: '0.25rem' }}>Start time *</label>
+                                  <label style={{ fontSize: '0.7rem', color: '#5a7fb5', display: 'block', marginBottom: '0.25rem' }}>Start time *</label>
                                   <input
                                     type="datetime-local"
                                     value={calendar.start}
                                     onChange={e => updateCalendar(email.email_db_id, 'start', e.target.value)}
-                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: 'rgba(148,163,184,0.9)', fontSize: '0.85rem', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
                                     onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
                                     onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
                                   />
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.7rem', color: 'rgba(148,163,184,0.5)', display: 'block', marginBottom: '0.25rem' }}>End time *</label>
+                                  <label style={{ fontSize: '0.7rem', color: '#5a7fb5', display: 'block', marginBottom: '0.25rem' }}>End time *</label>
                                   <input
                                     type="datetime-local"
                                     value={calendar.end}
                                     onChange={e => updateCalendar(email.email_db_id, 'end', e.target.value)}
-                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: 'rgba(148,163,184,0.9)', fontSize: '0.85rem', outline: 'none' }}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
                                     onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
                                     onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
                                   />
@@ -444,39 +380,39 @@ export default function PriorityEmails() {
                           </div>
                         )}
 
-                        {/* Admin response */}
+                        {/* Executive response */}
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ color: '#fff', fontWeight: 600, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Executive Response *</h4>
+                          <h4 style={{ color: '#fff', fontWeight: 700, margin: '0 0 0.4rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Executive Response *</h4>
                           <textarea
                             value={adminActions[email.email_db_id] || ''}
                             onChange={e => updateAction(email.email_db_id, e.target.value)}
                             placeholder="Enter your decision or response for this priority email..."
                             rows={5}
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8, color: 'rgba(148,163,184,0.9)', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.85rem 1rem', background: '#020b18', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8, color: '#fff', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s' }}
                             onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
-                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.15)'}
+                            onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
                           />
                         </div>
 
-                        {/* Actions */}
+                        {/* Actions - Consistent button labels */}
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => handleDeleteEmail(email)}
                             disabled={deletingId === email.email_db_id}
-                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.2s' }}
-                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = '#ef4444' } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)' }}
+                            style={{ padding: '0.45rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: '#f87171', cursor: deletingId === email.email_db_id ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { if (deletingId !== email.email_db_id) { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.color = '#f87171' }}
                           >
                             {deletingId === email.email_db_id ? 'Deleting...' : 'Delete'}
                           </button>
                           <button
                             onClick={() => handlePriorityAction(email)}
                             disabled={processingId === email.email_db_id || !hasAction || (isAppointment && !hasValidCalendar)}
-                            style={{ padding: '0.45rem 1.25rem', background: (hasAction && (!isAppointment || hasValidCalendar)) ? '#8b5cf6' : 'rgba(139,92,246,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 0.45 : 1 }}
+                            style={{ padding: '0.45rem 1.25rem', background: (hasAction && (!isAppointment || hasValidCalendar)) ? '#8b5cf6' : 'rgba(139,92,246,0.12)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 0.4 : 1 }}
                             onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id && (!isAppointment || hasValidCalendar)) e.currentTarget.style.filter = 'brightness(1.12)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >
-                            {processingId === email.email_db_id ? 'Processing...' : 'Execute ↗'}
+                            {processingId === email.email_db_id ? 'Sending...' : 'Send'}
                           </button>
                         </div>
                       </div>

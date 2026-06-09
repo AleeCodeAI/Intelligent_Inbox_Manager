@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import emailService from '../services/emailService'
 
 const LEFT_LINES = [
@@ -42,8 +42,6 @@ export default function NonBusinessEmails() {
   const [notification, setNotification] = useState(null)
   const [processingId, setProcessingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
 
   // Non-business type color mapping
   const getNonBusinessColor = (type) => {
@@ -58,71 +56,13 @@ export default function NonBusinessEmails() {
 
   const getNonBusinessLabel = (type) => {
     switch(type) {
-      case 'PERSONAL': return '👤 Personal'
-      case 'PROMOTIONAL': return '🎁 Promotional'
-      case 'INFORMATIONAL': return 'ℹ️ Informational'
-      case 'SPAM': return '🚫 Spam'
+      case 'PERSONAL': return 'Personal'
+      case 'PROMOTIONAL': return 'Promotional'
+      case 'INFORMATIONAL': return 'Informational'
+      case 'SPAM': return 'Spam'
       default: return type
     }
   }
-
-  // ── Envelope canvas animation ──────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    let envelopes = []
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      envelopes = Array.from({ length: 18 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        sx: (Math.random() - 0.5) * 0.45,
-        sy: (Math.random() - 0.5) * 0.35 + 0.08,
-        size: 10 + Math.random() * 12,
-        op: 0.04 + Math.random() * 0.05,
-      }))
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const drawEnvelope = (x, y, s, op) => {
-      ctx.save()
-      ctx.globalAlpha = op
-      ctx.strokeStyle = '#6b7280'
-      ctx.fillStyle = '#6b7280'
-      ctx.lineWidth = 1.1
-      ctx.strokeRect(x - s / 2, y - s / 2, s, s * 0.7)
-      ctx.beginPath()
-      ctx.moveTo(x - s / 2, y - s / 2)
-      ctx.lineTo(x, y - s / 2 + s * 0.33)
-      ctx.lineTo(x + s / 2, y - s / 2)
-      ctx.stroke()
-      ctx.restore()
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      envelopes.forEach(e => {
-        e.x += e.sx
-        e.y += e.sy
-        if (e.x < -40) e.x = canvas.width + 40
-        if (e.x > canvas.width + 40) e.x = -40
-        if (e.y < -40) e.y = canvas.height + 40
-        if (e.y > canvas.height + 40) e.y = -40
-        drawEnvelope(e.x, e.y, e.size, e.op)
-      })
-      animRef.current = requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animRef.current)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
 
   // ── Data fetching ───────────────────────────────────────────────
   useEffect(() => { fetchEmails() }, [])
@@ -168,7 +108,7 @@ export default function NonBusinessEmails() {
       }
       
       const response = await emailService.takeNonBusinessAction(payload)
-      showNotification('success', `Action completed for ${email.sender_name}!`)
+      showNotification('success', `Response sent to ${email.sender_name}!`)
       setTimeout(() => fetchEmails(), 1000)
     } catch (error) {
       const errorMessage = error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message
@@ -210,16 +150,13 @@ export default function NonBusinessEmails() {
 
   // ── Main render ─────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#020b18', position: 'relative', fontFamily: "'Inter', sans-serif" }}>
 
       {/* Grid overlay */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.03, backgroundImage: 'linear-gradient(rgba(107,114,128,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(107,114,128,0.6) 1px,transparent 1px)', backgroundSize: '55px 55px' }} />
 
       {/* Ambient center glow */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(107,114,128,0.08) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-
-      {/* Envelope canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }} />
 
       {/* Left code column */}
       <div style={{ position: 'absolute', left: 0, top: 0, width: 260, height: '100%', overflow: 'hidden', pointerEvents: 'none', zIndex: 3 }}>
@@ -260,7 +197,6 @@ export default function NonBusinessEmails() {
             <span style={{ fontSize: 11, color: '#6b7280', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Non-Business Queue</span>
           </div>
           
-          {/* Slate-Steel Metallic Gradient Title Header */}
           <h1 style={{
             fontSize: 'clamp(1.8rem, 4vw, 2.4rem)',
             fontWeight: 700,
@@ -381,7 +317,7 @@ export default function NonBusinessEmails() {
                           />
                         </div>
 
-                        {/* Actions */}
+                        {/* Actions - Consistent button labels */}
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => handleDeleteEmail(email)}
@@ -399,7 +335,7 @@ export default function NonBusinessEmails() {
                             onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id) e.currentTarget.style.filter = 'brightness(1.15)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >
-                            {processingId === email.email_db_id ? 'Processing...' : 'Send Response ↗'}
+                            {processingId === email.email_db_id ? 'Sending...' : 'Send'}
                           </button>
                         </div>
                       </div>
