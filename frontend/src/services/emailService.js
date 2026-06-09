@@ -85,6 +85,14 @@ const emailService = {
     console.log('Deleting via API:', apiEndpoints.deleteAppointment)
     const response = await axios.delete(apiEndpoints.deleteAppointment, { data: payload })
     return response.data
+  },
+
+  // All Emails
+  getAllEmails: async () => {
+    console.log('Calling API:', apiEndpoints.getAllEmails)
+    const response = await axios.get(apiEndpoints.getAllEmails)
+    console.log('API Response:', response.data)
+    return response.data
   }
 }
 

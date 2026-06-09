@@ -11,6 +11,7 @@ const apiEndpoints = {
   getDashboardAnalysis: `${API_BASE_URL}/analysis/get-analysis`,
   getAppointments: `${API_BASE_URL}/retrieval/appointments`,
   deleteAppointment: `${API_BASE_URL}/delete/appointment`,
+  getAllEmails: `${API_BASE_URL}/retrieval/emails`,
 }
 
 export default apiEndpoints
