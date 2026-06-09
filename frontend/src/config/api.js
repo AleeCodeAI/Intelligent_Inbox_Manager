@@ -12,6 +12,7 @@ const apiEndpoints = {
   getAppointments: `${API_BASE_URL}/retrieval/appointments`,
   deleteAppointment: `${API_BASE_URL}/delete/appointment`,
   getAllEmails: `${API_BASE_URL}/retrieval/emails`,
+  getProcessedEmails: `${API_BASE_URL}/retrieval/email-processing`,
 }
 
 export default apiEndpoints

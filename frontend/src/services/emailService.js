@@ -93,6 +93,14 @@ const emailService = {
     const response = await axios.get(apiEndpoints.getAllEmails)
     console.log('API Response:', response.data)
     return response.data
+  },
+
+  // Processed Emails
+  getProcessedEmails: async () => {
+    console.log('Calling API:', apiEndpoints.getProcessedEmails)
+    const response = await axios.get(apiEndpoints.getProcessedEmails)
+    console.log('API Response:', response.data)
+    return response.data
   }
 }
 
