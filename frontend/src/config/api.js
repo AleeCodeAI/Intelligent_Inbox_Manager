@@ -13,6 +13,7 @@ const apiEndpoints = {
   deleteAppointment: `${API_BASE_URL}/delete/appointment`,
   getAllEmails: `${API_BASE_URL}/retrieval/emails`,
   getProcessedEmails: `${API_BASE_URL}/retrieval/email-processing`,
+  runExecutor: `${API_BASE_URL}/master-pipeline/executor-run`,
 }
 
 export default apiEndpoints

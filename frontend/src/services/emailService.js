@@ -101,6 +101,14 @@ const emailService = {
     const response = await axios.get(apiEndpoints.getProcessedEmails)
     console.log('API Response:', response.data)
     return response.data
+  },
+
+  // Executor - Run master pipeline
+  runExecutor: async () => {
+    console.log('Calling API:', apiEndpoints.runExecutor)
+    const response = await axios.post(apiEndpoints.runExecutor)
+    console.log('API Response:', response.data)
+    return response.data
   }
 }
 
