@@ -43,6 +43,7 @@ export default function PriorityEmails() {
   const [notification, setNotification] = useState(null)
   const [processingId, setProcessingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [showCalendarPicker, setShowCalendarPicker] = useState({}) // Track which emails show calendar picker
 
   // Priority type color mapping
   const getPriorityColor = (type) => {
@@ -76,6 +77,7 @@ export default function PriorityEmails() {
         setEmails(response.data)
         const initial = {}
         const initialCalendar = {}
+        const initialShowPicker = {}
         response.data.forEach(e => { 
           initial[e.email_db_id] = ''
           initialCalendar[e.email_db_id] = {
@@ -83,9 +85,11 @@ export default function PriorityEmails() {
             start: '',
             end: ''
           }
+          initialShowPicker[e.email_db_id] = false // Initially hide calendar picker
         })
         setAdminActions(initial)
         setCalendarDetails(initialCalendar)
+        setShowCalendarPicker(initialShowPicker)
       }
     } catch (error) {
       showNotification('error', 'Failed to fetch priority emails: ' + (error.response?.data?.message || error.message))
@@ -102,19 +106,27 @@ export default function PriorityEmails() {
   const handlePriorityAction = async (email) => {
     setProcessingId(email.email_db_id)
     try {
-      if (email.priority_type === 'APPOINTMENT') {
-        const calendar = calendarDetails[email.email_db_id]
-        if (!calendar.start || !calendar.end) {
-          showNotification('error', 'Please set both start and end times for the appointment')
-          setProcessingId(null)
-          return
-        }
-      }
-
+      // Validate response message
       if (!adminActions[email.email_db_id]?.trim()) {
         showNotification('error', 'Please enter a response message')
         setProcessingId(null)
         return
+      }
+
+      // Calendar details are optional for all email types
+      let calendarData = null
+      if (showCalendarPicker[email.email_db_id]) {
+        const calendar = calendarDetails[email.email_db_id]
+        if (!calendar.start || !calendar.end) {
+          showNotification('error', 'Please set both start and end times for the calendar event')
+          setProcessingId(null)
+          return
+        }
+        calendarData = {
+          title: calendar.title?.trim() || `Meeting with ${email.sender_name}`,
+          start: calendar.start,
+          end: calendar.end
+        }
       }
 
       const payload = {
@@ -122,16 +134,7 @@ export default function PriorityEmails() {
         sender_name: email.sender_name,
         priority_type: email.priority_type,
         manual_response: adminActions[email.email_db_id].trim(),
-        calendar_details: null
-      }
-      
-      if (email.priority_type === 'APPOINTMENT') {
-        const calendar = calendarDetails[email.email_db_id]
-        payload.calendar_details = {
-          title: calendar.title?.trim() || `Meeting with ${email.sender_name}`,
-          start: calendar.start,
-          end: calendar.end
-        }
+        calendar_details: calendarData  // Will be null if no calendar details provided
       }
       
       await emailService.takePriorityAction(payload)
@@ -167,6 +170,16 @@ export default function PriorityEmails() {
       ...prev,
       [id]: { ...prev[id], [field]: value }
     }))
+  }
+  const toggleCalendarPicker = (id) => {
+    setShowCalendarPicker(prev => ({ ...prev, [id]: !prev[id] }))
+    // Reset calendar details when hiding picker to avoid sending stale data
+    if (showCalendarPicker[id]) {
+      setCalendarDetails(prev => ({
+        ...prev,
+        [id]: { title: '', start: '', end: '' }
+      }))
+    }
   }
 
   // ── Loading state ───────────────────────────────────────────────
@@ -285,9 +298,9 @@ export default function PriorityEmails() {
               {emails.map(email => {
                 const isExpanded = expandedId === email.email_db_id
                 const hasAction = !!adminActions[email.email_db_id]?.trim()
-                const isAppointment = email.priority_type === 'APPOINTMENT'
+                const showPicker = showCalendarPicker[email.email_db_id] || false
                 const calendar = calendarDetails[email.email_db_id] || { title: '', start: '', end: '' }
-                const hasValidCalendar = isAppointment ? (calendar.start && calendar.end) : true
+                const hasValidCalendar = !showPicker || (calendar.start && calendar.end) // Only require dates if picker is shown
                 
                 return (
                   <div
@@ -338,47 +351,79 @@ export default function PriorityEmails() {
                           </div>
                         </div>
 
-                        {/* Calendar picker for APPOINTMENT type */}
-                        {isAppointment && (
-                          <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8 }}>
-                            <h4 style={{ color: '#a78bfa', fontWeight: 700, margin: '0 0 0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Calendar Event Details</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                              <input
-                                type="text"
-                                value={calendar.title}
-                                onChange={e => updateCalendar(email.email_db_id, 'title', e.target.value)}
-                                placeholder="Event title (optional)"
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
-                                onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
-                                onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
-                              />
-                              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.7rem', color: '#5a7fb5', display: 'block', marginBottom: '0.25rem' }}>Start time *</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={calendar.start}
-                                    onChange={e => updateCalendar(email.email_db_id, 'start', e.target.value)}
-                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
-                                    onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
-                                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
-                                  />
+                        {/* Calendar Section - Now available for ALL priority types */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                            <h4 style={{ color: '#a78bfa', fontWeight: 700, margin: 0, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Calendar Event (Optional)</h4>
+                            <button
+                              type="button"
+                              onClick={() => toggleCalendarPicker(email.email_db_id)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '0.35rem 0.85rem',
+                                background: showPicker ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${showPicker ? '#a78bfa' : 'rgba(255,255,255,0.1)'}`,
+                                borderRadius: 20,
+                                color: showPicker ? '#fff' : '#c4b5fd',
+                                cursor: 'pointer',
+                                fontSize: '0.7rem',
+                                fontWeight: 500,
+                                fontFamily: 'inherit',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.2)'; e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.color = '#fff' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = showPicker ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = showPicker ? '#a78bfa' : 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = showPicker ? '#fff' : '#c4b5fd' }}
+                            >
+                              <span style={{ fontSize: '0.9rem' }}>📅</span>
+                              {showPicker ? 'Cancel calendar' : '+ Add calendar event'}
+                            </button>
+                          </div>
+                          
+                          {showPicker && (
+                            <div style={{ padding: '1rem', background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8, animation: 'slideDown 0.2s ease-out' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <input
+                                  type="text"
+                                  value={calendar.title}
+                                  onChange={e => updateCalendar(email.email_db_id, 'title', e.target.value)}
+                                  placeholder="Event title (optional)"
+                                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
+                                  onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
+                                  onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
+                                />
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.7rem', color: '#a78bfa', display: 'block', marginBottom: '0.25rem' }}>Start time</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={calendar.start}
+                                      onChange={e => updateCalendar(email.email_db_id, 'start', e.target.value)}
+                                      style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                                      onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
+                                      onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
+                                    />
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: '0.7rem', color: '#a78bfa', display: 'block', marginBottom: '0.25rem' }}>End time</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={calendar.end}
+                                      onChange={e => updateCalendar(email.email_db_id, 'end', e.target.value)}
+                                      style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                                      onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
+                                      onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
+                                    />
+                                  </div>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.7rem', color: '#5a7fb5', display: 'block', marginBottom: '0.25rem' }}>End time *</label>
-                                  <input
-                                    type="datetime-local"
-                                    value={calendar.end}
-                                    onChange={e => updateCalendar(email.email_db_id, 'end', e.target.value)}
-                                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: '#020b18', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, color: '#b9c7db', fontSize: '0.85rem', outline: 'none' }}
-                                    onFocus={e => e.currentTarget.style.borderColor = '#a78bfa'}
-                                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)'}
-                                  />
-                                </div>
+                                <p style={{ fontSize: '0.65rem', color: '#5a7fb5', margin: '0.25rem 0 0 0' }}>
+                                  ⚡ Add a calendar event to schedule a meeting or follow-up
+                                </p>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
 
                         {/* Executive response */}
                         <div style={{ marginBottom: '1.25rem' }}>
@@ -394,7 +439,7 @@ export default function PriorityEmails() {
                           />
                         </div>
 
-                        {/* Actions - Consistent button labels */}
+                        {/* Actions */}
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => handleDeleteEmail(email)}
@@ -407,9 +452,9 @@ export default function PriorityEmails() {
                           </button>
                           <button
                             onClick={() => handlePriorityAction(email)}
-                            disabled={processingId === email.email_db_id || !hasAction || (isAppointment && !hasValidCalendar)}
-                            style={{ padding: '0.45rem 1.25rem', background: (hasAction && (!isAppointment || hasValidCalendar)) ? '#8b5cf6' : 'rgba(139,92,246,0.12)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id || (isAppointment && !hasValidCalendar)) ? 0.4 : 1 }}
-                            onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id && (!isAppointment || hasValidCalendar)) e.currentTarget.style.filter = 'brightness(1.12)' }}
+                            disabled={processingId === email.email_db_id || !hasAction || (showPicker && !hasValidCalendar)}
+                            style={{ padding: '0.45rem 1.25rem', background: (hasAction && (!showPicker || hasValidCalendar)) ? '#8b5cf6' : 'rgba(139,92,246,0.12)', border: 'none', borderRadius: 8, color: '#fff', cursor: (!hasAction || processingId === email.email_db_id || (showPicker && !hasValidCalendar)) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em', fontFamily: 'inherit', transition: 'all 0.2s', opacity: (!hasAction || processingId === email.email_db_id || (showPicker && !hasValidCalendar)) ? 0.4 : 1 }}
+                            onMouseEnter={e => { if (hasAction && processingId !== email.email_db_id && (!showPicker || hasValidCalendar)) e.currentTarget.style.filter = 'brightness(1.12)' }}
                             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
                           >
                             {processingId === email.email_db_id ? 'Sending...' : 'Send'}
