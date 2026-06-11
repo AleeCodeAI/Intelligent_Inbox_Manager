@@ -155,7 +155,7 @@ export default function Emails() {
           </h1>
           
           <p style={{ color: '#5a7fb5', fontSize: '0.75rem', margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.8 }}>
-            Complete history of all processed emails
+            Complete history of all emails that entered the system
           </p>
           
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
