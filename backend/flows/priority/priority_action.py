@@ -23,7 +23,7 @@ class PriorityAction(Logger):
             # Appointment Handling
             # -------------------------------------------------------------------
 
-            if priority_action.priority_type.upper() == "APPOINTMENT" and priority_action.calendar_details:
+            if priority_action.calendar_details:
 
                 self.log(f"Step 1: Marking calendar for email ID: {priority_action.gmail_id} with event title: {priority_action.calendar_details.title}")
                 calendar_details: CalendarEventDetails = priority_action.calendar_details
