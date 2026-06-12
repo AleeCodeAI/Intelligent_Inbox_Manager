@@ -32,28 +32,32 @@ async def endpoint_delete_email(request: Request, gmail_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to delete email: {str(e)}")
 
 
-
-
-@router.delete("/appointment")
+@router.delete("/appointment/{gmail_id}/{event_id}")  
 @limiter.limit("30/minute")
-async def endpoint_delete_appointment(request: Request, data: DeleteAppointmentSchema):
+async def endpoint_delete_appointment(
+    request: Request, 
+    gmail_id: str,  
+    event_id: str   
+):
     """
-    Takes a DeleteAppointment payload containing gmail_id and event_id.
+    Takes gmail_id and event_id as path parameters.
     Deletes the email from the database (cascades automatically)
     and removes the corresponding calendar event via n8n.
     """
     try:
+        # Create schema object from path parameters
+        data = DeleteAppointmentSchema(gmail_id=gmail_id, event_id=event_id)
         delete_flow = DeleteAppointment()
         delete_flow.delete_appointment(data)
         
-        logger.info(f"Successfully deleted appointment. Gmail ID: {data.gmail_id} | Event ID: {data.event_id}")
+        logger.info(f"Successfully deleted appointment. Gmail ID: {gmail_id} | Event ID: {event_id}")
         
         return JSONResponse(
             status_code=200,
             content={
                 "status": "success", 
-                "deleted_gmail_id": data.gmail_id,
-                "deleted_event_id": data.event_id
+                "deleted_gmail_id": gmail_id,
+                "deleted_event_id": event_id
             },
         )
     except Exception as e:

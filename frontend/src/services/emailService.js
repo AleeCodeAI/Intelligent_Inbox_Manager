@@ -83,7 +83,10 @@ const emailService = {
 
   deleteAppointment: async (payload) => {
     console.log('Deleting via API:', apiEndpoints.deleteAppointment)
-    const response = await axios.delete(apiEndpoints.deleteAppointment, { data: payload })
+    // Send as path parameters in the URL
+    const response = await axios.delete(
+        `${apiEndpoints.deleteAppointment}/${payload.gmail_id}/${payload.event_id}`
+    )
     return response.data
   },
 
