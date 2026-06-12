@@ -237,6 +237,31 @@ Deletes an email by Gmail ID. Cascades to all extension tables (processing, basi
 
 ---
 
+### DELETE `/delete/appointment`
+
+**Rate limit: 30 requests/minute**
+
+Deletes an appointment and its corresponding calendar event. Takes a `DeleteAppointmentSchema` payload with `gmail_id` and `event_id`, then cascades deletion to the database and removes the calendar event via n8n.
+
+**Request Body:**
+```json
+{
+  "gmail_id": "msg_abc123",
+  "event_id": "google_event_id"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "deleted_gmail_id": "msg_abc123",
+  "deleted_event_id": "google_event_id"
+}
+```
+
+---
+
 ## Actions — `/actions`
 
 ### POST `/actions/priority-action`
@@ -294,6 +319,34 @@ Triggers the action flow for a non-business email — sends the manual response 
   "result": {
     "status": "sent",
     "emailId": "msg_abc123"
+  }
+}
+```
+
+---
+
+## Analysis — `/analysis`
+
+### POST `/analysis/get-analysis`
+
+**Rate limit: 100 requests/minute**
+
+Triggers the email analysis workflow to compute analytical data for the dashboard. Aggregates metrics and statistics across all processed emails.
+
+**Request Body:** No parameters required.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "total_emails": 150,
+    "processed_emails": 142,
+    "priority_count": 25,
+    "nonbusiness_count": 45,
+    "basic_count": 72,
+    "appointments_created": 12,
+    "manual_pending": 8
   }
 }
 ```
