@@ -5,6 +5,10 @@ import BasicEmails from './pages/BasicEmails'
 import PriorityEmails from './pages/PriorityEmails'
 import NonBusinessEmails from './pages/NonBusinessEmails'
 import Analysis from './pages/Analysis'
+import Emails from './pages/Emails'
+import ProcessedEmails from './pages/ProcessedEmails'
+import Appointments from './pages/Appointments'
+import Executor from './pages/Executor'
 
 function DashboardLayout({ children }) {
   return (
@@ -26,6 +30,10 @@ export default function App() {
         <Route path="/priority"     element={<DashboardLayout><PriorityEmails /></DashboardLayout>} />
         <Route path="/non-business" element={<DashboardLayout><NonBusinessEmails /></DashboardLayout>} />
         <Route path="/analysis"     element={<DashboardLayout><Analysis /></DashboardLayout>} />
+        <Route path="/emails"       element={<DashboardLayout><Emails /></DashboardLayout>} />
+        <Route path="/processed-emails" element={<DashboardLayout><ProcessedEmails /></DashboardLayout>} />
+        <Route path="/appointments" element={<DashboardLayout><Appointments /></DashboardLayout>} />
+        <Route path="/executor"     element={<DashboardLayout><Executor /></DashboardLayout>} />
       </Routes>
     </BrowserRouter>
   )
