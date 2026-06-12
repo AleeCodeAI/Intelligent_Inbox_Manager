@@ -37,6 +37,7 @@ The system classifies incoming emails into three main types. The frontend expose
 	- Meaning: Emails that can usually be automated by the system.
 	- Flow: Backend attempts automation. If automation succeeds, the email is recorded as processed and updates the database to hold success and metadata and shown on the "Processed" page. If automation fails, the email is saved to the database and surfaced on the `Basic` page for manual handling.
 	- UI actions: view content, optionally write and send a manual response, delete the email.
+	- The Basic emails, for which Agentic RAG completed but flow failed due to other reasons, will have an AI Draft that displays AI's response. This helps the admin to write manual answer without recalling the notes.
 
 - Priority Emails
 	- Meaning: High-sensitivity or high-value emails that must be handled manually (e.g., ongoing client communication, legal, high-value, appointments).
