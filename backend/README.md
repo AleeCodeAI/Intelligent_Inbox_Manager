@@ -33,6 +33,12 @@ The executor receives incoming emails, preprocesses the content, chooses the cor
 
 This pipeline is described in detail in `core/executor_documentations.md`.
 
+## Architecture Diagram
+
+![Architecture Diagram](architecture_diagram.png)
+
+The diagram above visualizes the executor pipeline and high-level components: a `BackendManager` starts the `Executor` which reads and preprocesses incoming emails, classifies them (Basic / Priority / Non-business), and routes each message to the appropriate flow. It highlights decision points, storage of messages and metadata, and how automated vs. manual review branches are handled.
+
 The backend processes each incoming email through a category-driven workflow:
 
 1. Receive an incoming email
@@ -141,6 +147,64 @@ The frontend provides a centralized interface so users can:
 - Keeps non-business messages organized without unnecessary automation
 - Helps professionals focus on the emails that matter most
 - Provides a modern workflow for managing email-driven client work
+
+## Technologies Used
+
+- **Programming language:** Python — the entire backend is implemented in Python for consistency and simplicity.
+- **Web framework:** FastAPI — used for the API layer and endpoints in `api/` for high-performance async HTTP handling.
+- **LLM client:** OpenAI SDK — primary client interface for LLM calls and integrations.
+- **Database:** PostgreSQL — production-grade relational database for storing emails, metadata, and generated artifacts.
+- **Observability:** Langfuse — used to capture and visualize LLM calls, traces, and metrics for debugging and performance analysis.
+- **Schemas & settings:** Pydantic & Pydantic Settings — typed schemas and centralized configuration management across the app.
+- **Low-code automation:** n8n — used for Gmail and calendar integrations (webhooks, send/receive email, create/delete calendar events).
+- **Other tools:** Openrouter and Groq (for alternative LLM providers), plus other Python core libraries used throughout the project.
+
+## Why Langfuse and n8n
+
+- **Langfuse (LLM observability):**
+   - **Traceability:** records inputs, outputs, latencies, and errors for every LLM call so you can reproduce and debug behavior.
+   - **Performance insights:** helps identify high-latency calls or costly patterns and optimize prompt structure or routing.
+   - **Auditability:** useful for compliance and monitoring when model outputs affect user-facing actions.
+
+- **n8n (low-code Gmail & calendar workflows):**
+   - **Rapid integration:** provides prebuilt Gmail and calendar nodes so you can offload authentication and event handling without custom code.
+   - **Webhook support:** manages incoming email events and calendar actions (create/update/delete) via webhooks, simplifying orchestration.
+   - **Separation of concerns:** keeps Gmail/calendar plumbing out of the core backend, making the system easier to maintain and secure.
+
+## LLMs and Model Strategy
+
+- **Primary providers:**
+   - **Groq:** used where free-tier or low-cost API access suffices; great for many routine LLM calls.
+   - **Openrouter:** configured as a fallback and for higher-volume routes when Groq reaches rate limits.
+
+- **Models used in the system:**
+   - **`gpt-oss-120b`:** primary model used across the system for most tasks — reliable, cost-effective, and performs well with carefully designed prompts.
+   - **`gpt-4.1-nano`:** reserved for agentic RAG and other higher-sensitivity tasks where stronger reasoning or retrieval-augmented responses are needed.
+
+- **Strategy highlights:**
+   - Use lightweight, well-prompted models for common tasks to keep costs and latency down (`gpt-oss-120b`).
+   - Route complex retrieval or agentic RAG flows to stronger models (`gpt-4.1-nano`) or fallbacks as necessary.
+   - Employ provider fallback (Openrouter) when primary endpoints (Groq) hit limits, and use Langfuse to monitor which calls are most expensive or error-prone.
+
+## Environment variables & n8n workflows
+
+This project expects several environment variables (commonly stored in a `.env` file or your deployment secrets) to configure LLM providers, observability, n8n webhooks, and the database. Below are the variables used in development:
+
+- `OPENROUTER_API_KEY`, `OPENROUTER_URL` — credentials and base URL for the Openrouter provider.
+- `GROQ_API_KEY`, `GROQ_URL` — credentials and base URL for Groq (primary free/low-cost provider).
+- `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_HOST` — Langfuse keys and host (default local dev: `http://localhost:3100`).
+- `N8N_GET_EMAILS_WEBHOOK_URL`, `SEND_EXAMPLE_EMAILS_N8N_URL`, `SEND_EMAILS`, `MARK_CALENDAR`, `DELETE_CALENDAR` — webhook endpoints hosted by your n8n instance for receiving email events and performing calendar/email actions.
+- `POSTGRESQL_URL` — PostgreSQL connection string (example: `postgres://user:pass@host:5432/dbname`).
+
+Notes and setup guidance:
+- Keep all API keys and connection strings secret; do not commit `.env` to version control.
+- `N8N_*` variables must point to the webhook URLs created in your n8n workflows (for example `https://n8n.example.com/webhook/get-emails`).
+- We will provide the n8n workflow JSON files that define Gmail/calendar flows and webhook nodes; import those JSONs into your n8n instance, enable the workflows, and then copy the generated webhook URLs into your `.env` values above.
+- n8n will handle Gmail authentication and calendar access; ensure you complete OAuth setup in your n8n environment before enabling the workflows.
+- For local testing, `LANGFUSE_HOST` can point to a local Langfuse instance (`http://localhost:3100`) or to your hosted Langfuse endpoint.
+
+If you want, I can save the provided n8n workflow JSONs into `backend/n8n_workflows/` (or another path you prefer) so they're easy to import. Tell me where you'd like them placed.
+
 
 ## Project Structure
  - `api/` — FastAPI endpoints for receiving and managing email events; API details are documented in `api/api_documentations.md`
