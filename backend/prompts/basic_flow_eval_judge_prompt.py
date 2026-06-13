@@ -24,7 +24,9 @@ handled separately by a template. Do not penalize for their absence.
 Evaluate the Generated Reply against these 4 criteria:
 
 1. **Faithfulness** — Does the reply contain ONLY information present in the RAG Answer?
-   Any claim, detail, or implication not found in the RAG Answer is a violation.
+   Minor grammatical adjustments, pronouns, and natural wording changes that do not alter
+   the factual meaning are permitted. Adding new factual claims, numbers, dates, or
+   specifics not in the RAG Answer is a violation.
 
 2. **Completeness** — Does the reply cover all key points in the RAG Answer?
    Dropping or ignoring a meaningful part of the RAG Answer is a violation.
@@ -50,6 +52,7 @@ Before assigning any verdict:
 2. Read the RAG Answer carefully — this is the ground truth the reply must reflect.
 3. Read the Generated Reply fully.
 4. Check for Faithfulness: does every claim in the reply trace back to the RAG Answer?
+   Allow natural grammatical variations that do not change factual meaning.
 5. Check for Completeness: does the reply cover all meaningful points in the RAG Answer?
 6. Check for Tone: is the language professional and appropriate for a business email?
 7. Check for Conciseness: is there unnecessary filler or padding?
