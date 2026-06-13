@@ -104,3 +104,58 @@ Provider fallback follows the same pattern as the pipeline: Groq is tried first,
 ## Notes
 
 - The `run_id` timestamp on output files ensures no previous results are overwritten between runs.
+
+---
+
+## Edge Case: RAG Answer Quality Validation
+
+### Problem Identified
+
+During live pipeline evaluation, an edge case was discovered: the RAG system sometimes returns answers that are technically valid (non-empty, has citations) but are functionally insufficient for responding to the client. Examples include:
+
+- "I don't have enough information to answer that."
+- "The notes don't mention what you asked about."
+- Partial answers that answer only part of a multi-part question.
+
+In the original pipeline design, the LLM simply paraphrased whatever RAG returned. This meant insufficient RAG answers were being rewritten into polished email responses and sent to clients — a poor user experience.
+
+### Solution: Validation First, Paraphrase Second
+
+The BasicFlow system prompt was redesigned with a two-stage process:
+
+1. **Validate** — The LLM first checks if the RAG reply is a valid response. A reply is **INVALID** if it indicates information is missing, unavailable, unknown, not provided, or otherwise insufficient to answer the email.
+
+2. **Paraphrase** — If the RAG reply is **VALID**, the LLM rewrites it into a polished email. If **INVALID**, the pipeline returns `answered="FALSE"` with an empty body, and no email is sent.
+
+The output schema was updated to reflect this:
+
+```python
+class BasicEmailResponse(BaseModel):
+    answered: Literal["TRUE", "FALSE"]
+    body: str  # empty when answered=FALSE
+```
+
+### Impact on Evals
+
+This change required updates to the evaluation pipeline:
+
+1. **Test Data Expansion** — The test dataset was expanded to include cases where the RAG answer is insufficient. These cases expect `answered="FALSE"` and have no generated reply body.
+
+2. **Eval Flow Modification** — The evaluator now checks the `answered` flag:
+   - If `answered="TRUE"`: Normal quality evaluation via judge
+   - If `answered="FALSE"`: Skip judge, add a note explaining why no evaluation was performed
+
+3. **Summary Metrics** — The summary now distinguishes between:
+   - Evaluated cases (answered=TRUE) — contribute to GOOD/BAD and pass rate
+   - Unevaluated cases (answered=FALSE) — tracked separately as correctly identified unanswerable queries
+
+4. **Schema Alignment** — The eval schemas remain unchanged; the `note` field is added only in results (in jsonl file) to explain skipped evaluations.
+
+### Why This Matters for Evaluation
+
+Without this change, evals would incorrectly treat `answered=FALSE` cases as having empty generated replies, skewing metrics. By separating validation quality (answered flag correctness) from response quality (GOOD/BAD for generated replies), the evaluation now accurately measures:
+
+- **Validation accuracy** — Did the pipeline correctly identify unanswerable queries?
+- **Generation quality** — For answerable queries, how good are the responses?
+
+This dual metric provides a complete picture of pipeline health.
