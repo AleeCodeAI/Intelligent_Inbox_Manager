@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from .agentic_rag_schemas import Citation
 
 # ===================================================================
@@ -13,6 +13,7 @@ class BasicLLMInput(BaseModel):
     citations: list[Citation]
 
 class BasicEmailResponse(BaseModel):
+    answered: Literal["TRUE", "FALSE"]
     body: str  # plain text — template.py wraps this in HTML
 
 # ===================================================================
