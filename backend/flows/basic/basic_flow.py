@@ -78,7 +78,11 @@ class BasicFlow(Logger):
             {"role": "user", "content": user_content},
         ]
 
-    def _call_llm(self, llm_input: BasicLLMInput, obs: BasicFlowObservability, ) -> BasicEmailResponse:
+    def _call_llm(
+            self, 
+            llm_input: BasicLLMInput, 
+            obs: BasicFlowObservability
+            ) -> BasicEmailResponse:
 
         providers = [
             ("Groq", self.groq, self.gpt_oss_model),
@@ -99,17 +103,25 @@ class BasicFlow(Logger):
             try:
                 self.log(f"Trying LLM provider: {provider_name}")
 
-                raw = client.chat.completions.create(model=model, messages=messages)
-                usage = raw.usage 
-                body = raw.choices[0].message.content
-
-                if not body or not body.strip():
-                    raise ValueError(f"Empty response from {provider_name}")
-
-                body = body.strip()
-                 
+                completion = client.beta.chat.completions.parse(
+                    model=model,
+                    messages=messages,
+                    response_format=BasicEmailResponse,
+                    temperature=0.7,
+                )
+                
+                response = completion.choices[0].message.parsed
+                usage = completion.usage
+                
+                if not response:
+                    raise ValueError(f"Failed to parse response from {provider_name}")
+                
+                # Validate the response
+                if response.answered == "TRUE" and not response.body:
+                    raise ValueError("TRUE answered but empty body")
+                
                 obs.end_generation(
-                    output=body,
+                    output=f"answered={response.answered}, body_length={len(response.body)}",
                     model=model,
                     provider=provider_name,
                     input_tokens=usage.prompt_tokens if usage else 0,
@@ -117,8 +129,8 @@ class BasicFlow(Logger):
                     cost=getattr(usage, 'cost', 0) or 0,
                 )
 
-                self.log(f"{provider_name} response generated successfully")
-                return BasicEmailResponse(body=body)
+                self.log(f"{provider_name} returned answered={response.answered}")
+                return response
 
             except Exception as e:
                 last_error = e
@@ -190,6 +202,27 @@ class BasicFlow(Logger):
             self.log(f"Step 2: Calling LLM for email {email.gmail_id}")
             response = self._call_llm(llm_input, obs)
 
+            # Handle unanswered case (answered = FALSE)
+            if response.answered == "FALSE":
+                self.log(f"LLM returned unanswered for email {email.gmail_id} - insufficient information to reply")
+                
+                # Insert as failed automation with specific reason
+                insert_basic(
+                    email_db_id=email_db_id,
+                    rag_answer=llm_input.rag_answer,
+                    rag_status="failed",
+                    citations=[c.model_dump() for c in llm_input.citations] if llm_input.citations else None,
+                    failure_reason="Insufficient information in RAG context to answer the email",
+                    needs_manual_reply=True,
+                )
+                basic_inserted = True
+                
+                obs.finish_trace(output="answered=FALSE")
+                obs.score_failure(reason="answered=FALSE - insufficient information")
+                
+                return response
+
+            # For answered == TRUE, proceed with sending the email
             self.log(
                 f"Step 3: Rendering in HTML the LLM response: "
                 f"{response.body[:60]}..."
@@ -266,10 +299,8 @@ class BasicFlow(Logger):
                     )
 
             return BasicEmailResponse(
-                body=(
-                    "The system could not generate a response. "
-                    "This email has been flagged for manual review."
-                )
+                answered="FALSE",
+                body=""
             )
 
 if __name__ == "__main__":
