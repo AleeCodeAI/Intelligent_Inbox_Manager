@@ -12,6 +12,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+
 class BasicFlowEvaluator(Logger):
     name: str = "BasicFlowEvaluator"
     color: str = Logger.BLUE
@@ -86,10 +87,12 @@ class BasicFlowEvaluator(Logger):
 
                 result = raw.choices[0].message.parsed
                 usage = raw.usage
-                cost = getattr(usage, 'cost', 0) or 0
+                cost = getattr(usage, "cost", 0) or 0
 
                 self.log(f"{provider_name} response generated successfully")
-                self.log(f"Tokens used: {usage.total_tokens}, Prompt tokens: {usage.prompt_tokens}, Completion tokens: {usage.completion_tokens} and total cost: ${cost:.8f}")
+                self.log(
+                    f"Tokens used: {usage.total_tokens}, Prompt tokens: {usage.prompt_tokens}, Completion tokens: {usage.completion_tokens} and total cost: ${cost:.8f}"
+                )
                 return result
 
             except Exception as e:
@@ -101,19 +104,26 @@ class BasicFlowEvaluator(Logger):
 
     def _write_summary(self, results: list[dict]) -> None:
         total = len(results)
-        good = sum(1 for r in results if r["evaluation"]["verdict"] == "GOOD")
-        bad = total - good
-        pass_rate = (good / total * 100) if total > 0 else 0.0
+        
+        # Filter to only evaluated cases (non-empty verdict)
+        evaluated = [r for r in results if r["evaluation"].get("verdict") in ["GOOD", "BAD"]]
+        unevaluated = total - len(evaluated)
+        
+        good = sum(1 for r in evaluated if r["evaluation"]["verdict"] == "GOOD")
+        bad = sum(1 for r in evaluated if r["evaluation"]["verdict"] == "BAD")
+        pass_rate = (good / len(evaluated) * 100) if evaluated else 0.0
 
         lines = [
             f"# BasicFlow Eval Summary — {self.run_id}",
             "",
-            "| Metric     | Value         |",
-            "|------------|---------------|",
-            f"| Total      | {total}        |",
-            f"| GOOD       | {good}         |",
-            f"| BAD        | {bad}          |",
-            f"| Pass Rate  | {pass_rate:.1f}% |",
+            "| Metric                               | Value         |",
+            "|--------------------------------------|---------------|",
+            f"| Total Test Cases                     | {total}        |",
+            f"| Cases with Generated Output (TRUE)   | {len(evaluated)} |",
+            f"| Cases without Output (FALSE)         | {unevaluated} |",
+            f"| GOOD Quality                         | {good}         |",
+            f"| BAD Quality                          | {bad}          |",
+            f"| Quality Pass Rate                    | {pass_rate:.1f}% |",
             "",
             "---",
             "",
@@ -125,7 +135,7 @@ class BasicFlowEvaluator(Logger):
             verdict = r["evaluation"]["verdict"]
             reasoning = r["evaluation"]["reasoning"]
             original = r["original_message"][:120].replace("\n", " ")
-            generated = r["generated_reply"][:300].replace("\n", " ")  # a bit more room for the reply
+            generated = r["generated_reply"][:300].replace("\n", " ")
             lines += [
                 f"### Case {idx} — {verdict}",
                 f"**Original message (truncated):** {original}",
@@ -135,9 +145,11 @@ class BasicFlowEvaluator(Logger):
                 f"**Reasoning:** {reasoning}",
                 "",
             ]
+            if "note" in r:
+                lines += [f"**Note:** {r['note']}", ""]
 
         self.summary_file.write_text("\n".join(lines), encoding="utf-8")
-        self.log(f"Summary saved → {self.summary_file}")
+        self.log(f"Summary saved -> {self.summary_file}")
 
     def run(self):
         self.log("Step 1: Starting BasicFlow evaluation...")
@@ -149,19 +161,37 @@ class BasicFlowEvaluator(Logger):
                 self.log("Running the BasicFlow pipeline...")
                 basic_result = self.flow._call_llm(item, obs=BasicFlowObservability())
 
-                self.log("Evaluating the generated reply with the judge LLM...")
-                judge_output = self._judge(BasicFlowEvalJudgeInput(
-                    original_message=item.message,
-                    rag_answer=item.rag_answer,
-                    generated_reply=basic_result.body,
-                ))
-                results.append({
-                    "original_message": item.message,
-                    "rag_answer": item.rag_answer,
-                    "generated_reply": basic_result.body,
-                    "evaluation": judge_output.model_dump(),
-                })
-                self.log(f"Item {idx + 1} evaluated with verdict: {judge_output.verdict}")
+                if basic_result.answered == "FALSE":
+                    self.log("answered=FALSE - skipping evaluation")
+                    results.append(
+                        {
+                            "original_message": item.message,
+                            "rag_answer": item.rag_answer,
+                            "generated_reply": "",
+                            "evaluation": {"verdict": "", "reasoning": ""},
+                            "note": "No quality evaluation performed because RAG context lacked sufficient information to answer the email.",
+                        }
+                    )
+                else:
+                    self.log("Evaluating the generated reply with the judge LLM...")
+                    judge_output = self._judge(
+                        BasicFlowEvalJudgeInput(
+                            original_message=item.message,
+                            rag_answer=item.rag_answer,
+                            generated_reply=basic_result.body,
+                        )
+                    )
+                    results.append(
+                        {
+                            "original_message": item.message,
+                            "rag_answer": item.rag_answer,
+                            "generated_reply": basic_result.body,
+                            "evaluation": judge_output.model_dump(),
+                        }
+                    )
+                    self.log(
+                        f"Item {idx + 1} evaluated with verdict: {judge_output.verdict}"
+                    )
 
                 self.log("Saving results...")
                 with open(self.results_file, "a", encoding="utf-8") as f:
@@ -174,7 +204,9 @@ class BasicFlowEvaluator(Logger):
         self.log("Step 3: Writing summary report...")
         self._write_summary(results)
         good = sum(1 for r in results if r["evaluation"]["verdict"] == "GOOD")
-        self.log(f"Evaluation complete. {good}/{len(results)} GOOD ({good/len(results)*100:.1f}% pass rate)")
+        self.log(
+            f"Evaluation complete. {good}/{len(results)} GOOD ({good / len(results) * 100:.1f}% pass rate)"
+        )
         self.log("Evaluation complete.")
 
 
