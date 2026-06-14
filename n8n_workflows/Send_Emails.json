@@ -1,0 +1,408 @@
+{
+  "name": "Send Emails",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b2a962e2-927f-40d9-8e60-ccf4241c3228",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        16
+      ],
+      "id": "d9d59766-b69e-47fd-9427-56cb3706ef6f",
+      "name": "Webhook",
+      "webhookId": "b2a962e2-927f-40d9-8e60-ccf4241c3228"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.response }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1088,
+        16
+      ],
+      "id": "7ae8f04d-9a2f-41a0-9987-81cfde0bcc1e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node — single response field\n\nconst item = items?.[0]?.json ?? {};\n\n// Safely extract email ID\nconst id = typeof item.id === \"string\" ? item.id : null;\n\n// Safely extract labels\nconst labelIds = Array.isArray(item.labelIds) ? item.labelIds : [];\n\n// Determine send status\nconst sent = labelIds.includes(\"SENT\");\n\n// Combine status and emailId into a single field\nreturn [\n  {\n    json: {\n      response: {\n        status: sent ? \"success\" : \"failed\",\n        emailId: id\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        16
+      ],
+      "id": "06534b01-5839-4ad8-9642-7761dcd136c6",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.email_type }}",
+                    "rightValue": "BASIC",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ba66668a-b4cf-49f7-b5d4-f340f786a267"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0f4bd7a8-7b19-4d4e-8472-2d14c2563ee6",
+                    "leftValue": "={{ $json.body.email_type }}",
+                    "rightValue": "PRIORITY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d2ba9a7d-ac93-4314-8611-3bba0e636cf4",
+                    "leftValue": "={{ $json.body.email_type }}",
+                    "rightValue": "NONBUSINESS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        0
+      ],
+      "id": "fe86f3fa-99f6-4c94-baa0-ee03420a754a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.body.id }}",
+        "message": "={{ $json.body.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        -144
+      ],
+      "id": "f27d0f43-233d-44f6-bd50-634fda1d8cc9",
+      "name": "reply to BASIC",
+      "webhookId": "d4a6ffe9-d0c4-4a6a-b2fd-5e3ab1d9dd5b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_5330601091002143908"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        656,
+        -144
+      ],
+      "id": "39e5a33d-a02f-4da9-80e2-37c57e7f17f9",
+      "name": "label BASIC",
+      "webhookId": "957234de-e361-4d44-8535-f18db6fb5289",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.body.id }}",
+        "message": "={{ $json.body.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        16
+      ],
+      "id": "febb9bb4-36ee-40e0-841f-a66381b33403",
+      "name": "reply to PRIORITY",
+      "webhookId": "d4a6ffe9-d0c4-4a6a-b2fd-5e3ab1d9dd5b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_210554180310186984"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        656,
+        16
+      ],
+      "id": "e180410a-7abc-48aa-8032-24791ea54457",
+      "name": "label PRIORITY",
+      "webhookId": "957234de-e361-4d44-8535-f18db6fb5289",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.body.id }}",
+        "message": "={{ $json.body.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        160
+      ],
+      "id": "32705afd-54aa-4662-a032-44751523c9a3",
+      "name": "reply to NONBUSINESS",
+      "webhookId": "d4a6ffe9-d0c4-4a6a-b2fd-5e3ab1d9dd5b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_4753678823045625689"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        656,
+        160
+      ],
+      "id": "9b8953ff-5927-4709-ab75-01a40aac48d5",
+      "name": "label NONBUSINESS",
+      "webhookId": "957234de-e361-4d44-8535-f18db6fb5289",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "reply to BASIC",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "reply to PRIORITY",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "reply to NONBUSINESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply to BASIC": {
+      "main": [
+        [
+          {
+            "node": "label BASIC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label BASIC": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply to PRIORITY": {
+      "main": [
+        [
+          {
+            "node": "label PRIORITY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label PRIORITY": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply to NONBUSINESS": {
+      "main": [
+        [
+          {
+            "node": "label NONBUSINESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label NONBUSINESS": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e13cba2c-037f-4eba-bade-b555716ca671",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "405dba3229d9ddbe419606a5701e7d1e05fd20da8f34cf8579c6bef4d8e90a97"
+  },
+  "id": "mhv7H0bRgzlNvVbC",
+  "tags": []
+}

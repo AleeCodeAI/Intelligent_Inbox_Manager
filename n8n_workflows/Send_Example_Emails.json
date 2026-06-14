@@ -1,0 +1,100 @@
+{
+  "name": "Send Example Emails",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "74f53c3c-a251-4db3-874d-1fcb938885af",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "4102ef55-1e8c-48d7-afd6-8a053f2a43f2",
+      "name": "Webhook",
+      "webhookId": "74f53c3c-a251-4db3-874d-1fcb938885af"
+    },
+    {
+      "parameters": {
+        "sendTo": "aleetest16@gmail.com",
+        "subject": "={{ $json.body.email.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body.email.body }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "={{ $json.body.email.sender_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        0
+      ],
+      "id": "8abb6f0a-424c-4b49-8814-94d205d6bbea",
+      "name": "Send a message",
+      "webhookId": "0696cd74-f1d3-47a8-997b-6fdeb0169890",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        0
+      ],
+      "id": "6a519621-c5d7-476b-8c56-791ab7a48bf9",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a2ed2993-1fdd-4b8e-af0b-7d5e41962e72",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "405dba3229d9ddbe419606a5701e7d1e05fd20da8f34cf8579c6bef4d8e90a97"
+  },
+  "id": "1diQgjO3pVQT7StK",
+  "tags": []
+}

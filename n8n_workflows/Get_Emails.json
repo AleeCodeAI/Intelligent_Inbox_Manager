@@ -1,0 +1,126 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "fetch-emails",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "451e5ee1-6310-4f1e-9d85-5e1589a165c1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -304
+      ],
+      "webhookId": "6a7aeb2f-aab3-4b6d-9e6a-c97539082e8b"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 20,
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ]
+        },
+        "options": {}
+      },
+      "id": "cc65fcd7-b06a-40c0-a0bb-aa34436e44f9",
+      "name": "Gmail Fetch",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -304
+      ],
+      "webhookId": "417fec9c-0924-4dee-9539-0b370e9f58a4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "h4CvISdxk92qbxFz",
+          "name": "inbox-manager-production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = $input.all();\nif (!emails || emails.length === 0) {\n  return [{ json: { total: 0, emails: [] } }];\n}\n\n// Function to extract only the new email content (remove quoted reply)\nfunction extractNewContent(bodyText) {\n  if (!bodyText) return bodyText;\n  \n  // Find where the quoted reply begins\n  const lines = bodyText.split(/\\r?\\n/);\n  let newContentLines = [];\n  let foundQuotedReply = false;\n  \n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i];\n    const lowerLine = line.toLowerCase();\n    \n    // Check for common reply markers\n    const isReplyMarker = \n      lowerLine.match(/^on .+? wrote:/i) ||\n      lowerLine.match(/^-------- original message --------/i) ||\n      lowerLine.match(/^-----original message-----/i) ||\n      (lowerLine.trim() === '>') ||\n      (line.trim().startsWith('>') && i > 0 && lines[i-1].trim() === '') ||\n      lowerLine.includes('wrote:') && lowerLine.includes('@');\n    \n    if (isReplyMarker && !foundQuotedReply) {\n      foundQuotedReply = true;\n      break;\n    }\n    \n    if (!foundQuotedReply) {\n      newContentLines.push(line);\n    }\n  }\n  \n  let newContent = newContentLines.join('\\n').trim();\n  \n  // Also remove any lines that start with '>' (quoted text)\n  const withoutQuotedLines = newContent.split(/\\r?\\n/).filter(line => !line.trim().startsWith('>')).join('\\n');\n  \n  return withoutQuotedLines || newContent;\n}\n\nconst structured = emails.map(e => {\n  const raw = Object.fromEntries(\n    Object.entries(e.json).map(([k, v]) => [k.toLowerCase(), v])\n  );\n\n  let senderName = null;\n  let senderEmail = '';\n  if (typeof raw.from === 'string') {\n    const match = raw.from.match(/^(.+?)\\s*<(.+?)>$/);\n    senderName  = match ? match[1].trim().replace(/^\"|\"$/g, '') : null;\n    senderEmail = match ? match[2].trim() : raw.from.trim();\n  } else if (raw.from?.value?.[0]) {\n    senderName  = raw.from.value[0].name  || null;\n    senderEmail = raw.from.value[0].address || '';\n  } else if (typeof raw.from?.text === 'string') {\n    const match = raw.from.text.match(/^(.+?)\\s*<(.+?)>$/);\n    senderName  = match ? match[1].trim().replace(/^\"|\"$/g, '') : null;\n    senderEmail = match ? match[2].trim() : raw.from.text.trim();\n  }\n\n  const date = raw.internaldate\n    ? new Date(parseInt(raw.internaldate)).toISOString()\n    : raw.date || null;\n\n  const fullBody = raw.text || raw.html || raw.snippet || null;\n  const cleanBody = extractNewContent(fullBody);\n\n  return {\n    gmail_id:    raw.id,\n    threadId:    raw.threadid || null,\n    senderName,\n    senderEmail,\n    subject:     raw.subject || 'No Subject',\n    date,\n    body:        cleanBody  // ← Now only contains NEW content, no quoted reply\n  };\n}).filter(e => {\n  if (!e.body) return true;\n  const normalized = e.body.trim().replace(/\\s+/g, ' ').toLowerCase();\n  return !normalized.includes(\"sent with care · confidential\");\n});\n\nreturn [{\n  json: {\n    total:  structured.length,\n    emails: structured\n  }\n}];"
+      },
+      "id": "859e5ec5-de9d-4981-ad31-1c7560da8751",
+      "name": "Structure Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "19da58e1-36ce-4e42-990f-3e6dbefc06d1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -304
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Gmail Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Fetch": {
+      "main": [
+        [
+          {
+            "node": "Structure Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Emails": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "405dba3229d9ddbe419606a5701e7d1e05fd20da8f34cf8579c6bef4d8e90a97"
+  }
+}

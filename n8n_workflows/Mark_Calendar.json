@@ -1,0 +1,125 @@
+{
+  "name": "Mark Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        304,
+        -112
+      ],
+      "id": "f344ea7f-25b9-4081-a224-b5c72787ade6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the data from input\nconst events = Array.isArray(items[0].json) ? items[0].json : [items[0].json];\n\n// Pick the first event (or you can modify later for multiple events)\nconst firstEvent = events[0];\n\n// Construct a single response object\nconst response = {\n    response: {\n        id: firstEvent.id,\n        status: firstEvent.status\n    }\n};\n\n// Return in n8n format (single item)\nreturn [{ json: response }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        -112
+      ],
+      "id": "ab522a8f-75f3-415b-8f25-f590025c4448",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "4bf897c5-dfe6-47b2-9d1d-49c7cd28e29d",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -112
+      ],
+      "id": "ef9adbaa-cca5-4e29-a585-d1b5acfd0b4c",
+      "name": "Webhook1",
+      "webhookId": "4bf897c5-dfe6-47b2-9d1d-49c7cd28e29d"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "aleetest16@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aleetest16@gmail.com"
+        },
+        "start": "={{ $json.body.start }}",
+        "end": "={{ $json.body.end }}",
+        "additionalFields": {
+          "summary": "={{ $json.body.title }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -112,
+        -112
+      ],
+      "id": "c9d168a0-4997-44e8-8934-395e761a7347",
+      "name": "Create an event1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "exzwSz2vBpnmKHWr",
+          "name": "inbox-manager-production"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Create an event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "499105b0-b917-4979-82c9-c4af07da4da4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "405dba3229d9ddbe419606a5701e7d1e05fd20da8f34cf8579c6bef4d8e90a97"
+  },
+  "id": "BDzPj68VtfLYNxra",
+  "tags": []
+}
