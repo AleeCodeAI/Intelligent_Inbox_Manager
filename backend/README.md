@@ -1,4 +1,4 @@
-# AI Email Automation and Management System
+# Inbox Manager — Backend
 
 ## Overview
 This system is an AI email automation and management platform designed for individuals, freelancers, and small professional teams who need to manage business email efficiently.
