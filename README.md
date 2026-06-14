@@ -180,3 +180,48 @@ Acknowledgements
 
 - This project uses Langfuse for LLM observability and n8n for Gmail & calendar automation.
 - Thanks to contributors, reviewers, and users who test flows and improve prompts.
+
+## Screenshots
+
+Below are screenshots from the `screenshots/` directory. Open the images in your viewer for full-size versions.
+
+![Screenshot 2026-06-11 205044](screenshots/Screenshot%202026-06-11%20205044.png)
+![Screenshot 2026-06-11 205123](screenshots/Screenshot%202026-06-11%20205123.png)
+![Screenshot 2026-06-11 205158](screenshots/Screenshot%202026-06-11%20205158.png)
+![Screenshot 2026-06-11 205214](screenshots/Screenshot%202026-06-11%20205214.png)
+![Screenshot 2026-06-11 205235](screenshots/Screenshot%202026-06-11%20205235.png)
+![Screenshot 2026-06-11 205253](screenshots/Screenshot%202026-06-11%20205253.png)
+![Screenshot 2026-06-11 205309](screenshots/Screenshot%202026-06-11%20205309.png)
+![Screenshot 2026-06-11 205330](screenshots/Screenshot%202026-06-11%20205330.png)
+![Screenshot 2026-06-11 205402](screenshots/Screenshot%202026-06-11%20205402.png)
+![Screenshot 2026-06-11 205455](screenshots/Screenshot%202026-06-11%20205455.png)
+![Screenshot 2026-06-11 205511](screenshots/Screenshot%202026-06-11%20205511.png)
+![Screenshot 2026-06-11 205525](screenshots/Screenshot%202026-06-11%20205525.png)
+![Screenshot 2026-06-11 205537](screenshots/Screenshot%202026-06-11%20205537.png)
+![Screenshot 2026-06-11 205554](screenshots/Screenshot%202026-06-11%20205554.png)
+![Screenshot 2026-06-11 205614](screenshots/Screenshot%202026-06-11%20205614.png)
+![Screenshot 2026-06-11 205710](screenshots/Screenshot%202026-06-11%20205710.png)
+![Screenshot 2026-06-11 205730](screenshots/Screenshot%202026-06-11%20205730.png)
+![Screenshot 2026-06-11 205925](screenshots/Screenshot%202026-06-11%20205925.png)
+![Screenshot 2026-06-11 205939](screenshots/Screenshot%202026-06-11%20205939.png)
+![Screenshot 2026-06-11 205954](screenshots/Screenshot%202026-06-11%20205954.png)
+![Screenshot 2026-06-11 210007](screenshots/Screenshot%202026-06-11%20210007.png)
+![Screenshot 2026-06-11 210025](screenshots/Screenshot%202026-06-11%20210025.png)
+![Screenshot 2026-06-11 210107](screenshots/Screenshot%202026-06-11%20210107.png)
+![Screenshot 2026-06-11 210124](screenshots/Screenshot%202026-06-11%20210124.png)
+![Screenshot 2026-06-11 210145](screenshots/Screenshot%202026-06-11%20210145.png)
+![Screenshot 2026-06-11 210203](screenshots/Screenshot%202026-06-11%20210203.png)
+![Screenshot 2026-06-11 210246](screenshots/Screenshot%202026-06-11%20210246.png)
+![Screenshot 2026-06-11 210302](screenshots/Screenshot%202026-06-11%20210302.png)
+![Screenshot 2026-06-11 210333](screenshots/Screenshot%202026-06-11%20210333.png)
+![Screenshot 2026-06-11 210444](screenshots/Screenshot%202026-06-11%20210444.png)
+![Screenshot 2026-06-11 210458](screenshots/Screenshot%202026-06-11%20210458.png)
+![Screenshot 2026-06-11 210612](screenshots/Screenshot%202026-06-11%20210612.png)
+![Screenshot 2026-06-11 210642](screenshots/Screenshot%202026-06-11%20210642.png)
+![Screenshot 2026-06-11 210653](screenshots/Screenshot%202026-06-11%20210653.png)
+![Screenshot 2026-06-11 210707](screenshots/Screenshot%202026-06-11%20210707.png)
+![Screenshot 2026-06-11 210723](screenshots/Screenshot%202026-06-11%20210723.png)
+![Screenshot 2026-06-11 210742](screenshots/Screenshot%202026-06-11%20210742.png)
+![Screenshot 2026-06-11 210844](screenshots/Screenshot%202026-06-11%20210844.png)
+![Screenshot 2026-06-11 210952](screenshots/Screenshot%202026-06-11%20210952.png)
+![Screenshot 2026-06-11 211017](screenshots/Screenshot%202026-06-11%20211017.png)
