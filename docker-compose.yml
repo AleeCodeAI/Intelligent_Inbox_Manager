@@ -1,0 +1,56 @@
+services:
+
+  # ============================================================
+  # BACKEND (FastAPI + uv + Uvicorn)
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inbox_manager_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      # PostgreSQL connection
+      - POSTGRESQL_URL=postgresql://postgres:${POSTGRES_PASSWORD}@shared-postgres:5432/inbox-manager-production 
+      
+      # Langfuse configuration
+      - LANGFUSE_HOST=http://shared-langfuse:3000
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      
+      # n8n webhook URLs (using container name, not localhost)
+      - N8N_GET_EMAILS_WEBHOOK_URL=http://shared-n8n:5678/webhook/fetch-emails
+      - SEND_EXAMPLE_EMAILS_N8N_URL=http://shared-n8n:5678/webhook/74f53c3c-a251-4db3-874d-1fcb938885af
+      - SEND_EMAILS=http://shared-n8n:5678/webhook/b2a962e2-927f-40d9-8e60-ccf4241c3228
+      - MARK_CALENDAR=http://shared-n8n:5678/webhook/4bf897c5-dfe6-47b2-9d1d-49c7cd28e29d
+      - DELETE_CALENDAR=http://shared-n8n:5678/webhook/5f93133a-f39f-4f69-a985-b967622cbf0c
+      
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # ============================================================
+  # FRONTEND (React + Vite + Nginx)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: inbox_manager_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+# ============================================================
+# NETWORKS
+# ============================================================
+networks:
+  infra-network:
+    external: true
