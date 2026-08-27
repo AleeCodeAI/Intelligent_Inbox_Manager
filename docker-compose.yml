@@ -14,7 +14,7 @@ services:
       - backend/.env
     environment:
       # PostgreSQL connection
-      - POSTGRESQL_URL=postgresql://postgres:${POSTGRES_PASSWORD}@shared-postgres:5432/inbox-manager-production 
+      - POSTGRESQL_URL=postgresql://postgres:${POSTGRES_PASSWORD}@shared-postgres:5432/inbox-manager-production # POSTGRES_PASSWORD here is imported from .env in root project
       
       # Langfuse configuration
       - LANGFUSE_HOST=http://shared-langfuse:3000
